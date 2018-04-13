@@ -417,6 +417,12 @@ public class Pos {
             }
         }
         System.out.println("# BaBye!");
+
+        // Dump arguments for next session
+        System.out.println(posId + ":" + eftposAddress +
+                (spiSecrets == null ? "" :
+                        ":" + spiSecrets.getEncKey() +
+                                ":" + spiSecrets.getHmacKey()));
     }
 
     /**
