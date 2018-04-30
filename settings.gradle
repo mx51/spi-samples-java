@@ -1,1 +1,1 @@
-include 'acmepos'
+include 'acmepos', 'kebabpos', 'utils'

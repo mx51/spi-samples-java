@@ -1,9 +1,9 @@
 package com.assemblypayments.acmepos;
 
-import com.assemblypayments.acmepos.util.SystemHelper;
 import com.assemblypayments.spi.Spi;
 import com.assemblypayments.spi.model.*;
 import com.assemblypayments.spi.util.RequestIdHelper;
+import com.assemblypayments.utils.SystemHelper;
 
 import java.util.Date;
 import java.util.Scanner;

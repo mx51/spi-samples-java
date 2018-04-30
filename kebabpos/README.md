@@ -1,6 +1,6 @@
-# Welcome to AcmePOS
+# Welcome to KebabPOS
 
-AcmePOS is a command-line POS.
+KebabPOS is a command-line POS.
 
 Its purpose is to demonstrate to a POS software developer how they might integrate with a PIN pad (card payment terminal) using Assembly Payment's SPI (Simple Payments Integration) as documented at [harness.simplepaymentapi.com](harness.simplepaymentapi.com).
 
@@ -19,7 +19,7 @@ Once imported, you can run the project by executing the `Pos` class.
 Alternatively, you can run it from the command line using the Gradle wrapper as follows:
 
 ```bash
-./gradlew --console plain acmepos:run -q -PrunArgs='JAVABAR'
+./gradlew --console plain kebabpos:run -q -PrunArgs='JAVABAR'
 ```
 
 The above command will compile the application and run it in plain console mode to make typing input cleaner. 

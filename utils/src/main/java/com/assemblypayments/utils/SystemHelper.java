@@ -1,4 +1,4 @@
-package com.assemblypayments.acmepos.util;
+package com.assemblypayments.utils;
 
 /**
  * Helper methods for language and platform-specific operations.
