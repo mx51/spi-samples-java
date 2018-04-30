@@ -28,7 +28,7 @@ import static com.assemblypayments.spi.model.TransactionType.PURCHASE;
  */
 public class Pos {
 
-    private static Logger LOG = LogManager.getLogger("spi");
+    private static final Logger LOG = LogManager.getLogger("spi");
 
     private Spi spi;
     private String posId = "KEBABPOS1";
