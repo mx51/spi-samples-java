@@ -747,19 +747,18 @@ public class Pos {
     }
 
     private void loadPersistedState(String[] args) {
-        if (args.length >= 1) {
-            // We were given something, at least POS ID and PIN pad address...
-            final String[] argSplit = args[0].split(":");
-            posId = argSplit[0];
-            if (argSplit.length > 1) {
-                eftposAddress = argSplit[1];
-            }
+        if (args.length < 1) return;
 
-            // Let's see if we were given existing secrets as well.
-            if (argSplit.length > 2) {
-                spiSecrets = new Secrets(argSplit[2], argSplit[3]);
-            }
-        }
+        // We were given something, at least POS ID and PIN pad address...
+        final String[] argSplit = args[0].split(":");
+        posId = argSplit[0];
+
+        if (argSplit.length < 2) return;
+        eftposAddress = argSplit[1];
+
+        // Let's see if we were given existing secrets as well.
+        if (argSplit.length < 4) return;
+        spiSecrets = new Secrets(argSplit[2], argSplit[3]);
     }
 
 }

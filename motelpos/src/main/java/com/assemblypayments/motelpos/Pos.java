@@ -24,7 +24,7 @@ public class Pos {
     private static final Logger LOG = LogManager.getLogger("spi");
 
     private Spi spi;
-    private SpiPreauth _spiPreauth;
+    private SpiPreauth spiPreauth;
     private String posId = "MOTELPOS1";
     private String eftposAddress = "192.168.1.6";
     private Secrets spiSecrets = null;
@@ -71,7 +71,7 @@ public class Pos {
                 onTxFlowStateChanged(value);
             }
         });
-        _spiPreauth = spi.enablePreauth();
+        spiPreauth = spi.enablePreauth();
         spi.start();
 
         SystemHelper.clearConsole();
@@ -342,14 +342,14 @@ public class Pos {
         InitiateTxResult initRes;
         switch (spInput[0].toLowerCase()) {
             case "acct_verify":
-                initRes = _spiPreauth.initiateAccountVerifyTx("actvfy-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()));
+                initRes = spiPreauth.initiateAccountVerifyTx("actvfy-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()));
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate account verify request: " + initRes.getMessage() + ". Please retry.");
                 }
                 break;
 
             case "preauth_open":
-                initRes = _spiPreauth.initiateOpenTx("propen-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), Integer.parseInt(spInput[1]));
+                initRes = spiPreauth.initiateOpenTx("propen-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), Integer.parseInt(spInput[1]));
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -357,7 +357,7 @@ public class Pos {
 
             case "preauth_topup":
                 preauthId = spInput[1];
-                initRes = _spiPreauth.initiateTopupTx("prtopup-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
+                initRes = spiPreauth.initiateTopupTx("prtopup-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -365,7 +365,7 @@ public class Pos {
 
             case "preauth_topdown":
                 preauthId = spInput[1];
-                initRes = _spiPreauth.initiatePartialCancellationTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
+                initRes = spiPreauth.initiatePartialCancellationTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -373,7 +373,7 @@ public class Pos {
 
             case "preauth_extend":
                 preauthId = spInput[1];
-                initRes = _spiPreauth.initiateExtendTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId);
+                initRes = spiPreauth.initiateExtendTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -381,7 +381,7 @@ public class Pos {
 
             case "preauth_cancel":
                 preauthId = spInput[1];
-                initRes = _spiPreauth.initiateCancelTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId);
+                initRes = spiPreauth.initiateCancelTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -389,7 +389,7 @@ public class Pos {
 
             case "preauth_complete":
                 preauthId = spInput[1];
-                initRes = _spiPreauth.initiateCompletionTx("prcomp-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
+                initRes = spiPreauth.initiateCompletionTx("prcomp-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -498,19 +498,18 @@ public class Pos {
     }
 
     private void loadPersistedState(String[] args) {
-        if (args.length >= 1) {
-            // We were given something, at least POS ID and PIN pad address...
-            final String[] argSplit = args[0].split(":");
-            posId = argSplit[0];
-            if (argSplit.length > 1) {
-                eftposAddress = argSplit[1];
-            }
+        if (args.length < 1) return;
 
-            // Let's see if we were given existing secrets as well.
-            if (argSplit.length > 2) {
-                spiSecrets = new Secrets(argSplit[2], argSplit[3]);
-            }
-        }
+        // We were given something, at least POS ID and PIN pad address...
+        final String[] argSplit = args[0].split(":");
+        posId = argSplit[0];
+
+        if (argSplit.length < 2) return;
+        eftposAddress = argSplit[1];
+
+        // Let's see if we were given existing secrets as well.
+        if (argSplit.length < 4) return;
+        spiSecrets = new Secrets(argSplit[2], argSplit[3]);
     }
 
 }
