@@ -13,7 +13,6 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -31,14 +30,14 @@ public class Pos {
      * Key = BillId
      * Value = Bill
      */
-    private Map<String, Bill> billsStore = new HashMap<>();
+    private HashMap<String, Bill> billsStore = new HashMap<>();
 
     /**
      * Lookup dictionary of table -> current order
      * Key = TableId
      * Value = BillId
      */
-    private Map<String, String> tableToBillMapping = new HashMap<>();
+    private HashMap<String, String> tableToBillMapping = new HashMap<>();
 
     /**
      * Assembly Payments Integration asks us to persist some data on their behalf
@@ -46,7 +45,7 @@ public class Pos {
      * Key = BillId
      * Value = Assembly Payments Bill Data
      */
-    private Map<String, String> assemblyBillDataStore = new HashMap<>();
+    private HashMap<String, String> assemblyBillDataStore = new HashMap<>();
 
     private Spi spi;
     private SpiPayAtTable pat;
@@ -119,6 +118,9 @@ public class Pos {
         printStatusAndActions();
         System.out.print("> ");
         acceptUserInput();
+
+        // Cleanup
+        spi.dispose();
     }
 
     //region Main Spi Callbacks
@@ -353,7 +355,7 @@ public class Pos {
         System.out.println("# [close:12]        - close table 12");
         System.out.println("# [tables]          - list open tables");
         System.out.println("# [table:12]        - print current bill for table 12");
-        System.out.println("# [bill:9876789876] - print bill with id 9876789876");
+        System.out.println("# [bill:9876789876] - print bill with ID 9876789876");
         System.out.println("#");
 
         if (spi.getCurrentFlow() == SpiFlow.IDLE) {
@@ -651,20 +653,25 @@ public class Pos {
 
     //region Persistence
 
-    private void loadPersistedState(String[] cmdArgs) {
-        if (cmdArgs.length <= 1) return; // nothing passed in
+    private void loadPersistedState(String[] args) {
+        if (args.length >= 1) {
+            // We were given something, at least POS ID and PIN pad address...
+            final String[] argSplit = args[0].split(":");
+            posId = argSplit[0];
+            if (argSplit.length > 1) {
+                eftposAddress = argSplit[1];
+            }
 
-        if (StringUtils.isWhitespace(cmdArgs[1])) return;
-
-        String[] argSplit = cmdArgs[1].split(":");
-        posId = argSplit[0];
-        eftposAddress = argSplit[1];
-        spiSecrets = new Secrets(argSplit[2], argSplit[3]);
+            // Let's see if we were given existing secrets as well.
+            if (argSplit.length > 2) {
+                spiSecrets = new Secrets(argSplit[2], argSplit[3]);
+            }
+        }
 
         if (new File("tableToBillMapping.bin").exists()) {
-            tableToBillMapping = Pos.<HashMap<String, String>>readFromBinaryFile("tableToBillMapping.bin");
-            billsStore = Pos.<HashMap<String, Bill>>readFromBinaryFile("billsStore.bin");
-            assemblyBillDataStore = Pos.<HashMap<String, String>>readFromBinaryFile("assemblyBillDataStore.bin");
+            tableToBillMapping = Pos.readFromBinaryFile("tableToBillMapping.bin");
+            billsStore = Pos.readFromBinaryFile("billsStore.bin");
+            assemblyBillDataStore = Pos.readFromBinaryFile("assemblyBillDataStore.bin");
         }
     }
 

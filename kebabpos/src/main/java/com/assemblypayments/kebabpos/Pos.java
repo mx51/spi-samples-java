@@ -746,15 +746,20 @@ public class Pos {
         return false;
     }
 
-    private void loadPersistedState(String[] cmdArgs) {
-        if (cmdArgs.length <= 1) return; // nothing passed in
+    private void loadPersistedState(String[] args) {
+        if (args.length >= 1) {
+            // We were given something, at least POS ID and PIN pad address...
+            final String[] argSplit = args[0].split(":");
+            posId = argSplit[0];
+            if (argSplit.length > 1) {
+                eftposAddress = argSplit[1];
+            }
 
-        if (StringUtils.isWhitespace(cmdArgs[1])) return;
-
-        String[] argSplit = cmdArgs[1].split(":");
-        posId = argSplit[0];
-        eftposAddress = argSplit[1];
-        spiSecrets = new Secrets(argSplit[2], argSplit[3]);
+            // Let's see if we were given existing secrets as well.
+            if (argSplit.length > 2) {
+                spiSecrets = new Secrets(argSplit[2], argSplit[3]);
+            }
+        }
     }
 
 }
