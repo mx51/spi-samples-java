@@ -4,7 +4,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '1.2.4'
 }
 
-mainClassName = 'com.assemblypayments.acmepos.Pos'
+mainClassName = 'com.assemblypayments.motelpos.Pos'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 
@@ -16,6 +16,6 @@ run {
 }
 
 dependencies {
-    compile 'com.assemblypayments:spi-client-java:2.0.2'
+    compile 'com.assemblypayments:spi-client-java:2.1.0'
     compile project(':utils')
 }
