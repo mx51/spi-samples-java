@@ -101,14 +101,12 @@ public class Pos {
         pat.setGetBillStatusDelegate(new SpiPayAtTable.GetBillStatusDelegate() {
             @Override
             public BillStatusResponse getBillStatus(String billId, String tableId, String operatorId) {
-                LOG.error("--------------------------------------- !!! ----------------------");
                 return payAtTableGetBillDetails(billId, tableId, operatorId);
             }
         });
         pat.setBillPaymentReceivedDelegate(new SpiPayAtTable.BillPaymentReceivedDelegate() {
             @Override
             public BillStatusResponse getBillReceived(BillPayment billPayment, String updatedBillData) {
-                LOG.error("--------------------------------------- ??? ----------------------");
                 return payAtTableBillPaymentReceived(billPayment, updatedBillData);
             }
         });
@@ -160,23 +158,18 @@ public class Pos {
     //region PayAtTable Delegates
 
     private BillStatusResponse payAtTableGetBillDetails(String billId, String tableId, String operatorId) {
-        LOG.error(">>>>> payAtTableGetBillDetails: billId='" + billId + "', tableId='" + tableId + "', operatorId='" + operatorId +"'");
-
         if (billId == null || StringUtils.isWhitespace(billId)) {
             // We were not given a billId, just a tableId.
             // This means that we are being asked for the bill by its table number.
 
             // Let's see if we have it.
             if (!tableToBillMapping.containsKey(tableId)) {
-                LOG.error(">>>> no tableId in mapping...");
                 // We didn't find a bill for this table.
                 // We just tell the Eftpos that.
                 BillStatusResponse response = new BillStatusResponse();
                 response.setResult(BillRetrievalResult.INVALID_TABLE_ID);
                 return response;
             }
-
-            LOG.error(">>>> found tableId in mapping!");
 
             // We have a billId for this Table.
             // Let's set it so we can retrieve it.
