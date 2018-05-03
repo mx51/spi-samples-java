@@ -615,9 +615,9 @@ public class Pos {
                 break;
 
             case "13kebab":
-                InitiateTxResult motoRed = spi.initiateMotoPurchaseTx("kebab-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), Integer.parseInt(spInput[1]));
-                if (!motoRed.isInitiated()) {
-                    System.out.println("# Could not initiate MOTO purchase: " + motoRed.getMessage() + ". Please retry.");
+                InitiateTxResult motoRes = spi.initiateMotoPurchaseTx("kebab-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), Integer.parseInt(spInput[1]));
+                if (!motoRes.isInitiated()) {
+                    System.out.println("# Could not initiate MOTO purchase: " + motoRes.getMessage() + ". Please retry.");
                 }
                 break;
 
