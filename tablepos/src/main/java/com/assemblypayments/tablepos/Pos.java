@@ -10,8 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Scanner;
 
@@ -213,7 +211,7 @@ public class Pos {
         System.out.print("> ");
 
         // Here you can access other data that you might want to store from this payment, for example the merchant receipt.
-        // billPayment.PurchaseResponse.GetMerchantReceipt();
+        //billPayment.getPurchaseResponse().getMerchantReceipt();
 
         // It is important that we persist this data on behalf of assembly.
         assemblyBillDataStore.put(billPayment.getBillId(), updatedBillData);
@@ -461,7 +459,7 @@ public class Pos {
                     break;
 
                 case "purchase":
-                    InitiateTxResult pRes = spi.initiatePurchaseTx("purchase-" + new SimpleDateFormat("o").format(new Date()), Integer.parseInt(spInput[1]), 0, 0, false);
+                    InitiateTxResult pRes = spi.initiatePurchaseTx("purchase-" + System.currentTimeMillis(), Integer.parseInt(spInput[1]), 0, 0, false);
                     if (!pRes.isInitiated()) {
                         System.out.println("# Could not initiate purchase: " + pRes.getMessage() + ". Please retry.");
                     }
@@ -469,7 +467,7 @@ public class Pos {
 
                 case "refund":
                 case "yuck":
-                    InitiateTxResult yuckRes = spi.initiateRefundTx("yuck-" + new SimpleDateFormat("o").format(new Date()), 1000);
+                    InitiateTxResult yuckRes = spi.initiateRefundTx("yuck-" + System.currentTimeMillis(), 1000);
                     if (!yuckRes.isInitiated()) {
                         System.out.println("# Could not initiate refund: " + yuckRes.getMessage() + ". Please retry.");
                     }
