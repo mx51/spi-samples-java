@@ -15,3 +15,14 @@ build/
 # IntelliJ
 *.iml
 .idea/
+acmepos/.settings/
+.settings/
+acmepos/.classpath
+acmepos/.project
+.project
+kebabpos/.classpath
+kebabpos/.project
+motelpos/.classpath
+tablepos/.classpath
+utils/.classpath
+utils/bin/*
