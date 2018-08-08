@@ -564,8 +564,8 @@ public class Pos {
     private void acceptUserInput() {
         final Scanner scanner = new Scanner(System.in);
         boolean bye = false;
-        while (!bye && scanner.hasNext()) {
-            final String input = scanner.next();
+        while (!bye && scanner.hasNextLine()) {
+            final String input = scanner.nextLine();
             if (StringUtils.isEmpty(input)) {
                 System.out.print("> ");
                 continue;
@@ -728,18 +728,22 @@ public class Pos {
                 System.out.print("> ");
                 break;
                
-            case "receipt_header":            	
-            	options.setCustomerReceiptHeader(spInput[1]);
-            	options.setMerchantReceiptHeader(spInput[1]);
+            case "receipt_header":
+            	String inputHeader = spInput[1].replace("\\r\\n", "\r\n");
+            	inputHeader = inputHeader.replace("\\\\", "\\");
+            	options.setCustomerReceiptHeader(inputHeader);
+            	options.setMerchantReceiptHeader(inputHeader);
                 SystemHelper.clearConsole();
                 spi.ackFlowEndedAndBackToIdle();
                 printStatusAndActions();
                 System.out.print("> ");
                 break;
             
-            case "receipt_footer":            	
-            	options.setCustomerReceiptFooter(spInput[1]);
-            	options.setMerchantReceiptFooter(spInput[1]);
+            case "receipt_footer":
+            	String inputFooter = spInput[1].replace("\\r\\n", "\r\n");
+            	inputFooter = inputFooter.replace("\\\\", "\\");
+            	options.setCustomerReceiptFooter(inputFooter);
+            	options.setMerchantReceiptFooter(inputFooter);
                 SystemHelper.clearConsole();
                 spi.ackFlowEndedAndBackToIdle();
                 printStatusAndActions();
