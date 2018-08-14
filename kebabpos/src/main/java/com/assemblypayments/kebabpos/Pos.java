@@ -50,7 +50,7 @@ public class Pos {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
             spi.posVendorId = "assembly";
-            spi.posVersion = "2.3.0"; 
+            spi.posVersion = "2.3.0";
             options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
@@ -637,7 +637,6 @@ public class Pos {
                 } else {
                     System.out.println("## -> Could not set POS ID");
                 }
-                ;
                 printStatusAndActions();
                 System.out.print("> ");
                 break;
@@ -720,36 +719,36 @@ public class Pos {
                 System.out.print("> ");
                 break;
 
-            case "print_merchant_copy":            	
+            case "print_merchant_copy":
                 spi.getConfig().setPrintMerchantCopy("true".equalsIgnoreCase(spInput[1]));
                 SystemHelper.clearConsole();
                 spi.ackFlowEndedAndBackToIdle();
                 printStatusAndActions();
                 System.out.print("> ");
                 break;
-               
+
             case "receipt_header":
-            	String inputHeader = spInput[1].replace("\\r\\n", "\r\n");
-            	inputHeader = inputHeader.replace("\\\\", "\\");
-            	options.setCustomerReceiptHeader(inputHeader);
-            	options.setMerchantReceiptHeader(inputHeader);
+                String inputHeader = spInput[1].replace("\\r\\n", "\r\n");
+                inputHeader = inputHeader.replace("\\\\", "\\");
+                options.setCustomerReceiptHeader(inputHeader);
+                options.setMerchantReceiptHeader(inputHeader);
                 SystemHelper.clearConsole();
                 spi.ackFlowEndedAndBackToIdle();
                 printStatusAndActions();
                 System.out.print("> ");
                 break;
-            
+
             case "receipt_footer":
-            	String inputFooter = spInput[1].replace("\\r\\n", "\r\n");
-            	inputFooter = inputFooter.replace("\\\\", "\\");
-            	options.setCustomerReceiptFooter(inputFooter);
-            	options.setMerchantReceiptFooter(inputFooter);
+                String inputFooter = spInput[1].replace("\\r\\n", "\r\n");
+                inputFooter = inputFooter.replace("\\\\", "\\");
+                options.setCustomerReceiptFooter(inputFooter);
+                options.setMerchantReceiptFooter(inputFooter);
                 SystemHelper.clearConsole();
                 spi.ackFlowEndedAndBackToIdle();
                 printStatusAndActions();
                 System.out.print("> ");
                 break;
-               
+
             case "ok":
                 SystemHelper.clearConsole();
                 spi.ackFlowEndedAndBackToIdle();
