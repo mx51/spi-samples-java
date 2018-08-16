@@ -15,3 +15,7 @@ build/
 # IntelliJ
 *.iml
 .idea/
+.settings/
+.classpath
+.project
+bin/

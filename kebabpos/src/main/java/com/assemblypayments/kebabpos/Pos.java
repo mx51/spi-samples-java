@@ -34,6 +34,7 @@ public class Pos {
     private String posId = "KEBABPOS1";
     private String eftposAddress = "192.168.1.1";
     private Secrets spiSecrets = null;
+    private TransactionOptions options;
 
     private String[] lastCmd = new String[0];
 
@@ -48,6 +49,8 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi.setPosInfo("assembly", "2.3.0");
+            options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
@@ -218,7 +221,7 @@ public class Pos {
                 System.out.println("# CASHOUT: " + purchaseResponse.getCashoutAmount());
                 System.out.println("# BANKED NON-CASH AMOUNT: " + purchaseResponse.getBankNonCashAmount());
                 System.out.println("# BANKED CASH AMOUNT: " + purchaseResponse.getBankCashAmount());
-
+                System.out.println("# BANKED SURCHARGE AMOUNT: " + purchaseResponse.getSurchargeAmount());
                 break;
             case FAILED:
                 System.out.println("# WE DID NOT GET PAID :(");
@@ -337,6 +340,7 @@ public class Pos {
                 System.out.println("# PURCHASE: " + purchaseResponse.getPurchaseAmount());
                 System.out.println("# BANKED NON-CASH AMOUNT: " + purchaseResponse.getBankNonCashAmount());
                 System.out.println("# BANKED CASH AMOUNT: " + purchaseResponse.getBankCashAmount());
+                System.out.println("# BANKED SURCHARGE AMOUNT: " + purchaseResponse.getSurchargeAmount());
                 break;
             case FAILED:
                 System.out.println("# WE DID NOT GET MOTO-PAID :(");
@@ -492,6 +496,9 @@ public class Pos {
             System.out.println("#");
             System.out.println("# [rcpt_from_eftpos:true] - offer customer receipt from EFTPOS");
             System.out.println("# [sig_flow_from_eftpos:true] - signature flow to be handled by EFTPOS");
+            System.out.println("# [print_merchant_copy:true] - add printing of footers and headers onto the existing EFTPOS receipt provided by payment application");
+            System.out.println("# [receipt_header:myheader] - set header for the receipt");
+            System.out.println("# [receipt_footer:myfooter] - set footer for the receipt");
             System.out.println("#");
         }
 
@@ -556,8 +563,8 @@ public class Pos {
     private void acceptUserInput() {
         final Scanner scanner = new Scanner(System.in);
         boolean bye = false;
-        while (!bye && scanner.hasNext()) {
-            final String input = scanner.next();
+        while (!bye && scanner.hasNextLine()) {
+            final String input = scanner.nextLine();
             if (StringUtils.isEmpty(input)) {
                 System.out.print("> ");
                 continue;
@@ -593,7 +600,7 @@ public class Pos {
                 if (spInput.length > 4) promptForCashout = Boolean.parseBoolean(spInput[4]);
                 // posRefId is what you would usually use to identify the order in your own system.
                 String posRefId = "kebab-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date());
-                InitiateTxResult pres = spi.initiatePurchaseTx(posRefId, Integer.parseInt(spInput[1]), tipAmount, cashoutAmount, promptForCashout);
+                InitiateTxResult pres = spi.initiatePurchaseTx(posRefId, Integer.parseInt(spInput[1]), tipAmount, cashoutAmount, promptForCashout, options);
                 if (!pres.isInitiated()) {
                     System.out.println("# Could not initiate purchase: " + pres.getMessage() + ". Please retry.");
                 }
@@ -629,7 +636,6 @@ public class Pos {
                 } else {
                     System.out.println("## -> Could not set POS ID");
                 }
-                ;
                 printStatusAndActions();
                 System.out.print("> ");
                 break;
@@ -698,10 +704,48 @@ public class Pos {
 
             case "rcpt_from_eftpos":
                 spi.getConfig().setPromptForCustomerCopyOnEftpos("true".equalsIgnoreCase(spInput[1]));
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
                 break;
 
             case "sig_flow_from_eftpos":
                 spi.getConfig().setSignatureFlowOnEftpos("true".equalsIgnoreCase(spInput[1]));
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "print_merchant_copy":
+                spi.getConfig().setPrintMerchantCopy("true".equalsIgnoreCase(spInput[1]));
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "receipt_header":
+                String inputHeader = spInput[1].replace("\\r\\n", "\r\n");
+                inputHeader = inputHeader.replace("\\\\", "\\");
+                options.setCustomerReceiptHeader(inputHeader);
+                options.setMerchantReceiptHeader(inputHeader);
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "receipt_footer":
+                String inputFooter = spInput[1].replace("\\r\\n", "\r\n");
+                inputFooter = inputFooter.replace("\\\\", "\\");
+                options.setCustomerReceiptFooter(inputFooter);
+                options.setMerchantReceiptFooter(inputFooter);
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
                 break;
 
             case "ok":
