@@ -49,7 +49,7 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
-            spi.setPosInfo("assembly", "2.3.0");
+            spi.setPosInfo("assembly", "2.3.3");
             options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
