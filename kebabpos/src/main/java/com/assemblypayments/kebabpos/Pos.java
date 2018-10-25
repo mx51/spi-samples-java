@@ -154,6 +154,7 @@ public class Pos {
                 System.out.println("# Attempting to cancel: " + txState.isAttemptingToCancel());
                 System.out.println("# Finished: " + txState.isFinished());
                 System.out.println("# Success: " + txState.getSuccess());
+                System.out.println("# GLT Response PosRefId: " + txState.getGltResponsePosRefId());
 
                 if (txState.isAwaitingSignatureCheck()) {
                     // We need to print the receipt for the customer to sign.
