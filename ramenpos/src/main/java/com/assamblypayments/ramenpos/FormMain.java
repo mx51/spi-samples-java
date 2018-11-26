@@ -589,6 +589,7 @@ public class FormMain implements WindowListener {
         switch (spi.getCurrentFlow()) {
             case PAIRING:
                 PairingFlowState pairingState = spi.getCurrentPairingFlowState();
+                formAction.lblFlowMessage.setText(pairingState.getMessage());
                 formAction.txtAreaFlow.append("### PAIRING PROCESS UPDATE ###" + "\n");
                 formAction.txtAreaFlow.append("# " + pairingState.getMessage() + "\n");
                 formAction.txtAreaFlow.append("# Finished? " + pairingState.isFinished() + "\n");
@@ -600,6 +601,7 @@ public class FormMain implements WindowListener {
 
             case TRANSACTION:
                 TransactionFlowState txState = spi.getCurrentTxFlowState();
+                formAction.lblFlowMessage.setText(txState.getDisplayMessage());
                 formAction.txtAreaFlow.append("### TX PROCESS UPDATE ###" + "\n");
                 formAction.txtAreaFlow.append("# " + txState.getDisplayMessage() + "\n");
                 formAction.txtAreaFlow.append("# Id: " + txState.getPosRefId() + "\n");
