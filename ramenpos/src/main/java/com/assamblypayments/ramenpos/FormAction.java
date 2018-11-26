@@ -40,9 +40,13 @@ public class FormAction implements WindowListener {
                     formMain.spi.pairingConfirmCode();
                     break;
                 case Enums.CancelPairing:
+                    formAction.btnAction1.setEnabled(false);
+                    actionDialog.pack();
                     formMain.spi.pairingCancel();
                     break;
                 case Enums.Cancel:
+                    formAction.btnAction1.setEnabled(false);
+                    actionDialog.pack();
                     formMain.spi.cancelTransaction();
                     break;
                 case Enums.OK:
@@ -106,7 +110,7 @@ public class FormAction implements WindowListener {
                     doHeaderFooter();
                     break;
                 case Enums.Print:
-                    formMain.spi.printReceipt(txtAction1.getText().trim(), sanitizePrintText(txtAction2.getText().trim()));
+                    formMain.spi.printReport(txtAction1.getText().trim(), sanitizePrintText(txtAction2.getText().trim()));
                     break;
                 case Enums.LastTx:
                     doLastTx();

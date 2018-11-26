@@ -49,7 +49,7 @@ public class FormMain implements WindowListener {
     private String serialNumber = "";
     private boolean autoAddressEnabled;
 
-    final String multilineHtml = "<html><body style='width: 400px'>";
+    final String multilineHtml = "<html><body style='width: 350px'>";
 
     static FormAction formAction;
     static FormTransactions formTransactions;
@@ -290,10 +290,10 @@ public class FormMain implements WindowListener {
     }
 
     private void onPairingFlowStateChanged(PairingFlowState pairingFlowState) {
-        formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage());
+        formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim());
 
         if (!pairingFlowState.getConfirmationCode().equals("")) {
-            formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage() + " " + "# Confirmation Code: " + pairingFlowState.getConfirmationCode());
+            formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim() + " " + "# Confirmation Code: " + pairingFlowState.getConfirmationCode().trim());
         }
 
         printStatusAndActions();
@@ -334,7 +334,7 @@ public class FormMain implements WindowListener {
         formAction.lblFlowMessage.setText("# --> Terminal Status Response Successful");
         TerminalStatusResponse terminalStatusResponse = new TerminalStatusResponse(message);
         formAction.txtAreaFlow.append("# Terminal Status Response #" + "\n");
-        formAction.txtAreaFlow.append("# Status: " + terminalStatusResponse.getStatus());
+        formAction.txtAreaFlow.append("# Status: " + terminalStatusResponse.getStatus()+ "\n");
         formAction.txtAreaFlow.append("# Battery Level: " + terminalStatusResponse.getBatteryLevel().replace("d", "") + "%" + "\n");
         formAction.txtAreaFlow.append("# Charging: " + terminalStatusResponse.isCharging() + "\n");
         spi.ackFlowEndedAndBackToIdle();
@@ -353,7 +353,7 @@ public class FormMain implements WindowListener {
         formAction.txtAreaFlow.append("# Comms Selected: " + terminalConfigurationResponse.getCommsSelected() + "\n");
         formAction.txtAreaFlow.append("# Merchant Id: " + terminalConfigurationResponse.getMerchantId() + "\n");
         formAction.txtAreaFlow.append("# PA Version: " + terminalConfigurationResponse.getPAVersion() + "\n");
-        formAction.txtAreaFlow.append("# Payment Inbterface Version: " + terminalConfigurationResponse.getPaymentInterfaceVersion() + "\n");
+        formAction.txtAreaFlow.append("# Payment Interface Version: " + terminalConfigurationResponse.getPaymentInterfaceVersion() + "\n");
         formAction.txtAreaFlow.append("# Plugin Version: " + terminalConfigurationResponse.getPluginVersion() + "\n");
         formAction.txtAreaFlow.append("# Serial Number: " + terminalConfigurationResponse.getSerialNumber() + "\n");
         formAction.txtAreaFlow.append("# Terminal Id: " + terminalConfigurationResponse.getTerminalId() + "\n");
@@ -402,6 +402,7 @@ public class FormMain implements WindowListener {
                 switch (spi.getCurrentFlow()) {
                     case IDLE:
                         formAction.lblFlowMessage.setText("Unpaired");
+                        formAction.btnAction1.setEnabled(true);
                         formAction.btnAction1.setVisible(true);
                         formAction.btnAction1.setText(Enums.OKUnpaired);
                         formAction.btnAction2.setVisible(false);
@@ -412,6 +413,7 @@ public class FormMain implements WindowListener {
 
                     case PAIRING:
                         if (spi.getCurrentPairingFlowState().isAwaitingCheckFromPos()) {
+                            formAction.btnAction1.setEnabled(true);
                             formAction.btnAction1.setVisible(true);
                             formAction.btnAction1.setText(Enums.ConfirmCode);
                             formAction.btnAction2.setVisible(true);
@@ -431,6 +433,14 @@ public class FormMain implements WindowListener {
                             break;
                         }
                     case TRANSACTION:
+                        formAction.lblFlowMessage.setText("Unpaired");
+                        formAction.btnAction1.setEnabled(true);
+                        formAction.btnAction1.setVisible(true);
+                        formAction.btnAction1.setText(Enums.OKUnpaired);
+                        formAction.btnAction2.setVisible(false);
+                        formAction.btnAction3.setVisible(false);
+                        btnTransactions.setVisible(false);
+                        getUnvisibleActionComponents();
                         break;
 
                     default:
@@ -451,6 +461,7 @@ public class FormMain implements WindowListener {
 
                     case TRANSACTION:
                         if (spi.getCurrentTxFlowState().isAwaitingSignatureCheck()) {
+                            formAction.btnAction1.setEnabled(true);
                             formAction.btnAction1.setVisible(true);
                             formAction.btnAction1.setText(Enums.AcceptSignature);
                             formAction.btnAction2.setVisible(true);
@@ -472,6 +483,7 @@ public class FormMain implements WindowListener {
                                     getOKActionComponents();
                                     break;
                                 case FAILED:
+                                    formAction.btnAction1.setEnabled(true);
                                     formAction.btnAction1.setVisible(true);
                                     formAction.btnAction1.setText(Enums.Retry);
                                     formAction.btnAction2.setVisible(true);
@@ -517,6 +529,7 @@ public class FormMain implements WindowListener {
 
                     case TRANSACTION:
                         if (spi.getCurrentTxFlowState().isAwaitingSignatureCheck()) {
+                            formAction.btnAction1.setEnabled(true);
                             formAction.btnAction1.setVisible(true);
                             formAction.btnAction1.setText(Enums.AcceptSignature);
                             formAction.btnAction2.setVisible(true);
@@ -538,6 +551,7 @@ public class FormMain implements WindowListener {
                                     getOKActionComponents();
                                     break;
                                 case FAILED:
+                                    formAction.btnAction1.setEnabled(true);
                                     formAction.btnAction1.setVisible(true);
                                     formAction.btnAction1.setText(Enums.Retry);
                                     formAction.btnAction2.setVisible(true);
@@ -933,6 +947,7 @@ public class FormMain implements WindowListener {
     }
 
     void getOKActionComponents() {
+        formAction.btnAction1.setEnabled(true);
         formAction.btnAction1.setVisible(true);
         formAction.btnAction1.setText(Enums.OK);
         formAction.btnAction2.setVisible(false);

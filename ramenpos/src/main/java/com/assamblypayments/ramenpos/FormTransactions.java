@@ -70,6 +70,7 @@ public class FormTransactions implements WindowListener {
         });
         btnPurchase.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the amount you would like to purchase for in cents");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Purchase);
             formAction.btnAction2.setVisible(true);
@@ -100,6 +101,7 @@ public class FormTransactions implements WindowListener {
         });
         btnMoto.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the amount you would like to moto for in cents");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.MOTO);
             formAction.btnAction2.setVisible(true);
@@ -125,6 +127,7 @@ public class FormTransactions implements WindowListener {
         });
         btnRefund.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the amount you would like to refund for in cents");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Refund);
             formAction.btnAction2.setVisible(true);
@@ -149,6 +152,7 @@ public class FormTransactions implements WindowListener {
         });
         bntCashout.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the amount you would like to cashout for in cents");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.CashOut);
             formAction.btnAction2.setVisible(true);
@@ -173,6 +177,7 @@ public class FormTransactions implements WindowListener {
             transactionsFrame.pack();
         });
         btnSettle.addActionListener(e -> {
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Cancel);
             formAction.btnAction2.setVisible(false);
@@ -201,6 +206,7 @@ public class FormTransactions implements WindowListener {
             transactionsFrame.pack();
         });
         btnSettleEnq.addActionListener(e -> {
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Cancel);
             formAction.btnAction2.setVisible(false);
@@ -229,6 +235,7 @@ public class FormTransactions implements WindowListener {
             transactionsFrame.pack();
         });
         btnLastTrans.addActionListener(e -> {
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.LastTx);
             formAction.btnAction2.setVisible(true);
@@ -252,6 +259,7 @@ public class FormTransactions implements WindowListener {
         });
         btnRecovery.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the reference you would like to recovery");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Recovery);
             formAction.btnAction2.setVisible(true);
@@ -275,6 +283,7 @@ public class FormTransactions implements WindowListener {
         });
         btnHeaderFooter.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the receipt header and footer you would like to print");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Set);
             formAction.btnAction2.setVisible(true);
@@ -300,6 +309,7 @@ public class FormTransactions implements WindowListener {
         });
         btnEftposPrinting.addActionListener(e -> {
             formAction.lblFlowMessage.setText("Please enter the print text and key you would like to print receipt");
+            formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(Enums.Print);
             formAction.btnAction2.setVisible(true);
