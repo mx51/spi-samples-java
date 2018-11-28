@@ -49,7 +49,7 @@ public class FormMain implements WindowListener {
     private String serialNumber = "";
     private boolean autoAddressEnabled;
 
-    final String multilineHtml = "<html><body style='width: 350px'>";
+    final String multilineHtml = "<html><body style='width: 250px'>";
 
     static FormAction formAction;
     static FormTransactions formTransactions;
@@ -77,6 +77,7 @@ public class FormMain implements WindowListener {
             btnSave.setEnabled(autoCheckBox.isSelected());
             testModeCheckBox.setSelected(autoCheckBox.isSelected());
             testModeCheckBox.setEnabled(autoCheckBox.isSelected());
+            txtDeviceAddress.setEnabled(!autoCheckBox.isSelected());
         });
         btnTransactions.addActionListener(e -> {
             mainFrame.setEnabled(false);
@@ -278,10 +279,12 @@ public class FormMain implements WindowListener {
 
     private void onDeviceAddressChanged(DeviceAddressStatus deviceAddressStatus) {
         btnAction.setEnabled(false);
-        if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
-            txtDeviceAddress.setText(deviceAddressStatus.getAddress());
-            btnAction.setEnabled(true);
-            showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+        if (spi.getCurrentStatus() == SpiStatus.UNPAIRED) {
+            if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
+                txtDeviceAddress.setText(deviceAddressStatus.getAddress());
+                btnAction.setEnabled(true);
+                showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+            }
         }
     }
 
@@ -972,6 +975,7 @@ public class FormMain implements WindowListener {
     @Override
     public void windowOpened(WindowEvent e) {
         btnAction.setText(Enums.Pair);
+        txtDeviceAddress.setEnabled(false);
         Start();
     }
 
