@@ -90,6 +90,7 @@ public class FormAction implements WindowListener {
                             formMain.printStatusAndActions();
                             break;
                     }
+                    break;
 
                 case Enums.Purchase:
                     doPurchase();

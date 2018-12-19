@@ -315,7 +315,7 @@ public class FormMain implements WindowListener {
     }
 
     private void handlePrintingResponse(Message message) {
-        formAction.txtAreaFlow.append("");
+        formAction.txtAreaFlow.setText("");
         PrintingResponse printingResponse = new PrintingResponse(message);
 
         if (printingResponse.isSuccess()) {
@@ -333,11 +333,11 @@ public class FormMain implements WindowListener {
     }
 
     private void handleTerminalStatusResponse(Message message) {
-        formAction.txtAreaFlow.append("");
+        formAction.txtAreaFlow.setText("");
         formAction.lblFlowMessage.setText("# --> Terminal Status Response Successful");
         TerminalStatusResponse terminalStatusResponse = new TerminalStatusResponse(message);
         formAction.txtAreaFlow.append("# Terminal Status Response #" + "\n");
-        formAction.txtAreaFlow.append("# Status: " + terminalStatusResponse.getStatus()+ "\n");
+        formAction.txtAreaFlow.append("# Status: " + terminalStatusResponse.getStatus() + "\n");
         formAction.txtAreaFlow.append("# Battery Level: " + terminalStatusResponse.getBatteryLevel().replace("d", "") + "%" + "\n");
         formAction.txtAreaFlow.append("# Charging: " + terminalStatusResponse.isCharging() + "\n");
         spi.ackFlowEndedAndBackToIdle();
@@ -349,7 +349,7 @@ public class FormMain implements WindowListener {
     }
 
     private void handleTerminalConfigurationResponse(Message message) {
-        formAction.txtAreaFlow.append("");
+        formAction.txtAreaFlow.setText("");
         formAction.lblFlowMessage.setText("# --> Terminal Configuration Response Successful");
         TerminalConfigurationResponse terminalConfigurationResponse = new TerminalConfigurationResponse(message);
         formAction.txtAreaFlow.append("# Terminal Configuration Response #" + "\n");
@@ -371,17 +371,19 @@ public class FormMain implements WindowListener {
     }
 
     private void handleBatteryLevelChanged(Message message) {
-        formAction.txtAreaFlow.append("");
-        formAction.lblFlowMessage.setText("# --> Battery Level Changed Successful");
-        TerminalBattery terminalBattery = new TerminalBattery(message);
-        formAction.txtAreaFlow.append("# Battery Level Changed #" + "\n");
-        formAction.txtAreaFlow.append("# Battery Level: " + terminalBattery.batteryLevel.replace("d", "") + "%" + "\n");
+        if (!actionDialog.isVisible()) {
+            formAction.lblFlowMessage.setText("# --> Battery Level Changed Successful");
+            TerminalBattery terminalBattery = new TerminalBattery(message);
+            formAction.txtAreaFlow.setText("");
+            formAction.txtAreaFlow.append("# Battery Level Changed #" + "\n");
+            formAction.txtAreaFlow.append("# Battery Level: " + terminalBattery.batteryLevel.replace("d", "") + "%" + "\n");
 
-        spi.ackFlowEndedAndBackToIdle();
-        transactionsFrame.setEnabled(false);
-        actionDialog.setVisible(true);
-        actionDialog.pack();
-        transactionsFrame.pack();
+            spi.ackFlowEndedAndBackToIdle();
+            transactionsFrame.setEnabled(false);
+            actionDialog.setVisible(true);
+            actionDialog.pack();
+            transactionsFrame.pack();
+        }
     }
 
     void printStatusAndActions() {
