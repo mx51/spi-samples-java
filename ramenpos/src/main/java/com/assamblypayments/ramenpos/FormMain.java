@@ -132,6 +132,8 @@ public class FormMain implements WindowListener {
                 case Enums.UnPair:
                     formMain.secretsCheckBox.setEnabled(true);
                     formMain.autoCheckBox.setEnabled(true);
+                    formMain.testModeCheckBox.setEnabled(true);
+                    formMain.btnSave.setEnabled(true);
                     formMain.txtPosId.setEnabled(true);
                     formMain.txtSerialNumber.setEnabled(true);
                     formMain.txtDeviceAddress.setEnabled(true);

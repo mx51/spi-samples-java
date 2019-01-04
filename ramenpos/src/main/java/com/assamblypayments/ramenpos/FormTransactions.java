@@ -342,6 +342,8 @@ public class FormTransactions implements WindowListener {
             if (formMain.btnAction.getText().equals(Enums.UnPair)) {
                 formMain.secretsCheckBox.setEnabled(false);
                 formMain.autoCheckBox.setEnabled(false);
+                formMain.testModeCheckBox.setEnabled(false);
+                formMain.btnSave.setEnabled(false);
                 formMain.txtPosId.setEnabled(false);
                 formMain.txtSerialNumber.setEnabled(false);
                 formMain.txtDeviceAddress.setEnabled(false);
