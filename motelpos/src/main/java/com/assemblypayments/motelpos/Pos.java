@@ -256,7 +256,7 @@ public class Pos {
             System.out.println("# [preauth_topup:12345678:5000] - top up existing preauth 12345678 with $50.00");
             System.out.println("# [preauth_topdown:12345678:5000] - partially cancel existing preauth 12345678 by $50.00");
             System.out.println("# [preauth_extend:12345678] - extend existing preauth 12345678");
-            System.out.println("# [preauth_complete:12345678:8000] - complete preauth with ID 12345678 for $80.00");
+            System.out.println("# [preauth_complete:12345678:8000:100] - complete preauth with ID 12345678 for $80.00 and $1.00 surcharge amount");
             System.out.println("# [preauth_cancel:12345678] - cancel preauth with ID 12345678");
         }
 
@@ -394,7 +394,7 @@ public class Pos {
 
             case "preauth_complete":
                 preauthId = spInput[1];
-                initRes = spiPreauth.initiateCompletionTx("prcomp-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
+                initRes = spiPreauth.initiateCompletionTx("prcomp-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]), Integer.parseInt(spInput[3]));
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
