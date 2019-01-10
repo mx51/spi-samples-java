@@ -28,6 +28,7 @@ public class Pos {
     private String posId = "MOTELPOS1";
     private String eftposAddress = "192.168.1.6";
     private Secrets spiSecrets = null;
+    private String serialNumber = "";
 
     public static void main(String[] args) {
         new Pos().start(args);
@@ -39,7 +40,7 @@ public class Pos {
 
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
-            spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
@@ -47,6 +48,9 @@ public class Pos {
             System.out.println("# ");
             return;
         }
+
+        spi.setPosInfo("assembly", "2.4.0");
+
         spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
             @Override
             public void onEvent(SpiStatus value) {
@@ -162,6 +166,7 @@ public class Pos {
                                 System.out.println("# NEW BALANCE AMOUNT: " + preauthResponse.getBalanceAmount());
                                 System.out.println("# PREV BALANCE AMOUNT: " + preauthResponse.getPreviousBalanceAmount());
                                 System.out.println("# COMPLETION AMOUNT: " + preauthResponse.getCompletionAmount());
+                                System.out.println("# SURCHARGE AMOUNT: " + preauthResponse.getCompletionSurchargeAmount());
 
                                 PurchaseResponse details = preauthResponse.getDetails();
                                 System.out.println("# Response: " + details.getResponseText());
