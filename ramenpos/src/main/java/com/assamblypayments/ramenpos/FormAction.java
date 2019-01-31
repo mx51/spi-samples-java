@@ -4,7 +4,6 @@ import com.assemblypayments.spi.model.InitiateTxResult;
 import com.assemblypayments.spi.model.TransactionType;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.text.SimpleDateFormat;
@@ -36,29 +35,29 @@ public class FormAction implements WindowListener {
     public FormAction() {
         btnAction1.addActionListener(e -> {
             switch (btnAction1.getText()) {
-                case Enums.ConfirmCode:
+                case ComponentLabels.CONFIRM_CODE:
                     formMain.spi.pairingConfirmCode();
                     break;
-                case Enums.CancelPairing:
+                case ComponentLabels.CANCEL_PAIRING:
                     formAction.btnAction1.setEnabled(false);
                     actionDialog.pack();
                     formMain.spi.pairingCancel();
                     break;
-                case Enums.Cancel:
+                case ComponentLabels.CANCEL:
                     formAction.btnAction1.setEnabled(false);
                     actionDialog.pack();
                     formMain.spi.cancelTransaction();
                     break;
-                case Enums.OK:
+                case ComponentLabels.OK:
                     formMain.spi.ackFlowEndedAndBackToIdle();
                     formMain.printStatusAndActions();
                     mainFrame.setEnabled(true);
                     transactionsFrame.setEnabled(true);
                     actionDialog.setVisible(false);
                     break;
-                case Enums.OKUnpaired:
+                case ComponentLabels.OK_UNPAIRED:
                     formMain.spi.ackFlowEndedAndBackToIdle();
-                    formMain.btnAction.setText(Enums.Pair);
+                    formMain.btnAction.setText(ComponentLabels.PAIR);
                     mainFrame.setEnabled(true);
                     formMain.secretsCheckBox.setSelected(false);
                     mainFrame.pack();
@@ -66,10 +65,10 @@ public class FormAction implements WindowListener {
                     transactionsFrame.setVisible(false);
                     mainFrame.setVisible(true);
                     break;
-                case Enums.AcceptSignature:
+                case ComponentLabels.ACCEPT_SIGNATURE:
                     formMain.spi.acceptSignature(true);
                     break;
-                case Enums.Retry:
+                case ComponentLabels.RETRY:
                     formMain.spi.ackFlowEndedAndBackToIdle();
                     txtAreaFlow.setText("");
                     switch (formMain.spi.getCurrentTxFlowState().getType()) {
@@ -92,28 +91,28 @@ public class FormAction implements WindowListener {
                     }
                     break;
 
-                case Enums.Purchase:
+                case ComponentLabels.PURCHASE:
                     doPurchase();
                     break;
-                case Enums.Refund:
+                case ComponentLabels.REFUND:
                     doRefund();
                     break;
-                case Enums.CashOut:
+                case ComponentLabels.CASH_OUT:
                     doCashOut();
                     break;
-                case Enums.MOTO:
+                case ComponentLabels.MOTO:
                     doMoto();
                     break;
-                case Enums.Recovery:
+                case ComponentLabels.RECOVERY:
                     doRecovery();
                     break;
-                case Enums.Set:
+                case ComponentLabels.SET:
                     doHeaderFooter();
                     break;
-                case Enums.Print:
+                case ComponentLabels.PRINT:
                     formMain.spi.printReport(txtAction1.getText().trim(), sanitizePrintText(txtAction2.getText().trim()));
                     break;
-                case Enums.LastTx:
+                case ComponentLabels.LAST_TX:
                     doLastTx();
                     break;
             }
@@ -121,13 +120,13 @@ public class FormAction implements WindowListener {
 
         btnAction2.addActionListener(e -> {
             switch (btnAction2.getText()) {
-                case Enums.CancelPairing:
+                case ComponentLabels.CANCEL_PAIRING:
                     formMain.spi.pairingCancel();
                     break;
-                case Enums.DeclineSignature:
+                case ComponentLabels.DECLINE_SIGNATURE:
                     formMain.spi.acceptSignature(false);
                     break;
-                case Enums.Cancel:
+                case ComponentLabels.CANCEL:
                     formMain.spi.ackFlowEndedAndBackToIdle();
                     txtAreaFlow.setText("");
                     formMain.printStatusAndActions();
@@ -140,7 +139,7 @@ public class FormAction implements WindowListener {
         });
 
         btnAction3.addActionListener(e -> {
-            if (btnAction3.getText().equals(Enums.Cancel)) {
+            if (btnAction3.getText().equals(ComponentLabels.CANCEL)) {
                 formMain.spi.cancelTransaction();
             }
         });
@@ -269,11 +268,9 @@ public class FormAction implements WindowListener {
     }
 
     private String sanitizePrintText(String printText) {
-//        printText = printText.replace("\\emphasis", "\emphasis");
-//        printText = printText.replace("\\clear", "\clear");
-//        //printText = printText.replace("\r\n", );
-//        return printText.replace("\n", Environment.NewLine);
-
-        return "";
+        printText = printText.replace("\\r\\n", "\r\n");
+        printText = printText.replace("\\n", "\n");
+        return printText.replace("\\\\", "\\");
     }
+
 }

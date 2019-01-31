@@ -95,9 +95,9 @@ public class FormMain implements WindowListener {
             btnAction.setEnabled(secretsCheckBox.isSelected());
 
             if (secretsCheckBox.isSelected()) {
-                btnAction.setText(Enums.Start);
+                btnAction.setText(ComponentLabels.START);
             } else {
-                btnAction.setText(Enums.Pair);
+                btnAction.setText(ComponentLabels.PAIR);
                 txtSecrets.setText("");
             }
 
@@ -105,14 +105,14 @@ public class FormMain implements WindowListener {
         });
         btnAction.addActionListener(e -> {
             switch (btnAction.getText()) {
-                case Enums.Start:
+                case ComponentLabels.START:
                     if (!areControlsValidForSecrets())
                         return;
 
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
                     Start();
                     break;
-                case Enums.Pair:
+                case ComponentLabels.PAIR:
                     if (!areControlsValid(true))
                         return;
 
@@ -129,7 +129,7 @@ public class FormMain implements WindowListener {
                         showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
                     }
                     break;
-                case Enums.UnPair:
+                case ComponentLabels.UN_PAIR:
                     formMain.secretsCheckBox.setEnabled(true);
                     formMain.autoCheckBox.setEnabled(true);
                     formMain.testModeCheckBox.setEnabled(true);
@@ -411,7 +411,7 @@ public class FormMain implements WindowListener {
                         formAction.lblFlowMessage.setText("Unpaired");
                         formAction.btnAction1.setEnabled(true);
                         formAction.btnAction1.setVisible(true);
-                        formAction.btnAction1.setText(Enums.OKUnpaired);
+                        formAction.btnAction1.setText(ComponentLabels.OK_UNPAIRED);
                         formAction.btnAction2.setVisible(false);
                         formAction.btnAction3.setVisible(false);
                         btnTransactions.setVisible(false);
@@ -422,15 +422,15 @@ public class FormMain implements WindowListener {
                         if (spi.getCurrentPairingFlowState().isAwaitingCheckFromPos()) {
                             formAction.btnAction1.setEnabled(true);
                             formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(Enums.ConfirmCode);
+                            formAction.btnAction1.setText(ComponentLabels.CONFIRM_CODE);
                             formAction.btnAction2.setVisible(true);
-                            formAction.btnAction2.setText(Enums.CancelPairing);
+                            formAction.btnAction2.setText(ComponentLabels.CANCEL_PAIRING);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentPairingFlowState().isFinished()) {
                             formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(Enums.CancelPairing);
+                            formAction.btnAction1.setText(ComponentLabels.CANCEL_PAIRING);
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -443,7 +443,7 @@ public class FormMain implements WindowListener {
                         formAction.lblFlowMessage.setText("Unpaired");
                         formAction.btnAction1.setEnabled(true);
                         formAction.btnAction1.setVisible(true);
-                        formAction.btnAction1.setText(Enums.OKUnpaired);
+                        formAction.btnAction1.setText(ComponentLabels.OK_UNPAIRED);
                         formAction.btnAction2.setVisible(false);
                         formAction.btnAction3.setVisible(false);
                         btnTransactions.setVisible(false);
@@ -460,7 +460,7 @@ public class FormMain implements WindowListener {
             case PAIRED_CONNECTING:
                 switch (spi.getCurrentFlow()) {
                     case IDLE:
-                        btnAction.setText(Enums.UnPair);
+                        btnAction.setText(ComponentLabels.UN_PAIR);
                         formAction.lblFlowMessage.setText("# --> SPI Status Changed: " +
                                 spi.getCurrentStatus());
                         getOKActionComponents();
@@ -470,16 +470,16 @@ public class FormMain implements WindowListener {
                         if (spi.getCurrentTxFlowState().isAwaitingSignatureCheck()) {
                             formAction.btnAction1.setEnabled(true);
                             formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(Enums.AcceptSignature);
+                            formAction.btnAction1.setText(ComponentLabels.ACCEPT_SIGNATURE);
                             formAction.btnAction2.setVisible(true);
-                            formAction.btnAction2.setText(Enums.DeclineSignature);
+                            formAction.btnAction2.setText(ComponentLabels.DECLINE_SIGNATURE);
                             formAction.btnAction3.setVisible(true);
-                            formAction.btnAction3.setText(Enums.Cancel);
+                            formAction.btnAction3.setText(ComponentLabels.CANCEL);
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentTxFlowState().isFinished()) {
                             formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(Enums.Cancel);
+                            formAction.btnAction1.setText(ComponentLabels.CANCEL);
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -492,9 +492,9 @@ public class FormMain implements WindowListener {
                                 case FAILED:
                                     formAction.btnAction1.setEnabled(true);
                                     formAction.btnAction1.setVisible(true);
-                                    formAction.btnAction1.setText(Enums.Retry);
+                                    formAction.btnAction1.setText(ComponentLabels.RETRY);
                                     formAction.btnAction2.setVisible(true);
-                                    formAction.btnAction2.setText(Enums.Cancel);
+                                    formAction.btnAction2.setText(ComponentLabels.CANCEL);
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
@@ -522,7 +522,7 @@ public class FormMain implements WindowListener {
             case PAIRED_CONNECTED:
                 switch (spi.getCurrentFlow()) {
                     case IDLE:
-                        btnAction.setText(Enums.UnPair);
+                        btnAction.setText(ComponentLabels.UN_PAIR);
                         formAction.lblFlowMessage.setText("# --> SPI Status Changed: " +
                                 spi.getCurrentStatus());
                         mainFrame.setVisible(false);
@@ -538,16 +538,16 @@ public class FormMain implements WindowListener {
                         if (spi.getCurrentTxFlowState().isAwaitingSignatureCheck()) {
                             formAction.btnAction1.setEnabled(true);
                             formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(Enums.AcceptSignature);
+                            formAction.btnAction1.setText(ComponentLabels.ACCEPT_SIGNATURE);
                             formAction.btnAction2.setVisible(true);
-                            formAction.btnAction2.setText(Enums.DeclineSignature);
+                            formAction.btnAction2.setText(ComponentLabels.DECLINE_SIGNATURE);
                             formAction.btnAction3.setVisible(true);
-                            formAction.btnAction3.setText(Enums.Cancel);
+                            formAction.btnAction3.setText(ComponentLabels.CANCEL);
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentTxFlowState().isFinished()) {
                             formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(Enums.Cancel);
+                            formAction.btnAction1.setText(ComponentLabels.CANCEL);
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -560,9 +560,9 @@ public class FormMain implements WindowListener {
                                 case FAILED:
                                     formAction.btnAction1.setEnabled(true);
                                     formAction.btnAction1.setVisible(true);
-                                    formAction.btnAction1.setText(Enums.Retry);
+                                    formAction.btnAction1.setText(ComponentLabels.RETRY);
                                     formAction.btnAction2.setVisible(true);
-                                    formAction.btnAction2.setText(Enums.Cancel);
+                                    formAction.btnAction2.setText(ComponentLabels.CANCEL);
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
@@ -958,7 +958,7 @@ public class FormMain implements WindowListener {
     void getOKActionComponents() {
         formAction.btnAction1.setEnabled(true);
         formAction.btnAction1.setVisible(true);
-        formAction.btnAction1.setText(Enums.OK);
+        formAction.btnAction1.setText(ComponentLabels.OK);
         formAction.btnAction2.setVisible(false);
         formAction.btnAction3.setVisible(false);
         getUnvisibleActionComponents();
@@ -978,7 +978,7 @@ public class FormMain implements WindowListener {
 
     @Override
     public void windowOpened(WindowEvent e) {
-        btnAction.setText(Enums.Pair);
+        btnAction.setText(ComponentLabels.PAIR);
         txtDeviceAddress.setEnabled(false);
         Start();
     }

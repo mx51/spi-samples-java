@@ -6,7 +6,7 @@ plugins {
 
 mainClassName = 'com.assemblypayments.ramenpos.Main'
 
-sourceCompatibility = 1.8
+sourceCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
     compile 'com.assemblypayments:spi-client-java:2.4.1'
