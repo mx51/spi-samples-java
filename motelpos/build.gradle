@@ -16,6 +16,6 @@ run {
 }
 
 dependencies {
-    compile 'com.assemblypayments:spi-client-java:2.4.0'
+    compile 'com.assemblypayments:spi-client-java:2.4.1'
     compile project(':utils')
 }
