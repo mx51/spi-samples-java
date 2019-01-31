@@ -9,8 +9,7 @@ mainClassName = 'com.assemblypayments.ramenpos.Main'
 sourceCompatibility = 1.8
 
 dependencies {
-    //compile 'com.assemblypayments:spi-client-java:2.4.0'
-    compile fileTree(dir: 'build', include: ['client_main.jar'])
+    compile 'com.assemblypayments:spi-client-java:2.4.0'
     compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.10.0'
     compile project(':utils')
 }

@@ -231,7 +231,7 @@ public class FormMain implements WindowListener {
     }
 
     private void Start() {
-        LOG.info("Starting KebabPos...");
+        LOG.info("Starting RamenPos...");
 
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
