@@ -49,8 +49,6 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
-            spi.setPosInfo("assembly", "2.3.0");
-            options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
@@ -58,31 +56,39 @@ public class Pos {
             System.out.println("# ");
             return;
         }
-        spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
-            @Override
-            public void onEvent(SpiStatus value) {
-                onSpiStatusChanged(value);
-            }
-        });
-        spi.setPairingFlowStateChangedHandler(new Spi.EventHandler<PairingFlowState>() {
-            @Override
-            public void onEvent(PairingFlowState value) {
-                onPairingFlowStateChanged(value);
-            }
-        });
-        spi.setSecretsChangedHandler(new Spi.EventHandler<Secrets>() {
-            @Override
-            public void onEvent(Secrets value) {
-                onSecretsChanged(value);
-            }
-        });
-        spi.setTxFlowStateChangedHandler(new Spi.EventHandler<TransactionFlowState>() {
-            @Override
-            public void onEvent(TransactionFlowState value) {
-                onTxFlowStateChanged(value);
-            }
-        });
-        spi.start();
+
+        try {
+            spi.setPosInfo("assembly", "2.3.0");
+            options = new TransactionOptions();
+            spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
+                @Override
+                public void onEvent(SpiStatus value) {
+                    onSpiStatusChanged(value);
+                }
+            });
+            spi.setPairingFlowStateChangedHandler(new Spi.EventHandler<PairingFlowState>() {
+                @Override
+                public void onEvent(PairingFlowState value) {
+                    onPairingFlowStateChanged(value);
+                }
+            });
+            spi.setSecretsChangedHandler(new Spi.EventHandler<Secrets>() {
+                @Override
+                public void onEvent(Secrets value) {
+                    onSecretsChanged(value);
+                }
+            });
+            spi.setTxFlowStateChangedHandler(new Spi.EventHandler<TransactionFlowState>() {
+                @Override
+                public void onEvent(TransactionFlowState value) {
+                    onTxFlowStateChanged(value);
+                }
+            });
+            spi.start();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return;
+        }
 
         SystemHelper.clearConsole();
         System.out.println("# Welcome to KebabPos !");
