@@ -291,29 +291,49 @@ public class FormMain implements WindowListener {
     }
 
     private void onTxFlowStateChanged(TransactionFlowState txState) {
-        printStatusAndActions();
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                printStatusAndActions();
+            }
+        });
     }
 
     private void onPairingFlowStateChanged(PairingFlowState pairingFlowState) {
-        formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim());
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().
 
-        if (!pairingFlowState.getConfirmationCode().equals("")) {
-            formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim() + " " + "# Confirmation Code: " + pairingFlowState.getConfirmationCode().trim());
-        }
+                        trim());
 
-        printStatusAndActions();
+                if (!pairingFlowState.getConfirmationCode().
+
+                        equals("")) {
+                    formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim() + " " + "# Confirmation Code: " + pairingFlowState.getConfirmationCode().trim());
+                }
+
+                printStatusAndActions();
+            }
+        });
     }
 
     private void onSecretsChanged(Secrets secrets) {
-        spiSecrets = secrets;
-        formTransactions.btnSecrets.doClick();
-        printStatusAndActions();
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                spiSecrets = secrets;
+                formTransactions.btnSecrets.doClick();
+                printStatusAndActions();
+            }
+        });
     }
 
     private void onSpiStatusChanged(SpiStatus status) {
-        formAction.lblFlowMessage.setText("It's trying to connect");
-        LOG.info("# --> SPI Status Changed: " + status);
-        printStatusAndActions();
+        SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                formAction.lblFlowMessage.setText("It's trying to connect");
+                LOG.info("# --> SPI Status Changed: " + status);
+                printStatusAndActions();
+            }
+        });
     }
 
     private void handlePrintingResponse(Message message) {
