@@ -61,7 +61,8 @@ public class Pos {
 
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
-            spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi = new Spi(posId, "", eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi.setPosInfo("assembly", "2.4.0");
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
