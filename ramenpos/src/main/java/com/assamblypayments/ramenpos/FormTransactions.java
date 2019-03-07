@@ -119,7 +119,8 @@ public class FormTransactions implements WindowListener {
             formAction.txtAction3.setVisible(false);
             formAction.lblAction4.setVisible(false);
             formAction.txtAction4.setVisible(false);
-            formAction.cboxAction1.setVisible(false);
+            formAction.cboxAction1.setVisible(true);
+            formAction.cboxAction1.setText(ComponentLabels.SUPPRESS_MERHCANT_PASSWORD);
             transactionsFrame.setEnabled(false);
             actionDialog.setVisible(true);
             actionDialog.pack();
@@ -192,7 +193,7 @@ public class FormTransactions implements WindowListener {
             formAction.txtAction4.setVisible(false);
             formAction.cboxAction1.setVisible(false);
 
-            InitiateTxResult settleRes = formMain.spi.initiateSettleTx(RequestIdHelper.id("settle"));
+            InitiateTxResult settleRes = formMain.spi.initiateSettleTx(RequestIdHelper.id("settle"), formMain.options);
 
             if (settleRes.isInitiated()) {
                 formAction.txtAreaFlow.setText("# Settle Initiated. Will be updated with Progress." + "\n");
@@ -221,7 +222,7 @@ public class FormTransactions implements WindowListener {
             formAction.txtAction4.setVisible(false);
             formAction.cboxAction1.setVisible(false);
 
-            InitiateTxResult senqRes = formMain.spi.initiateSettlementEnquiry(RequestIdHelper.id("stlenq"));
+            InitiateTxResult senqRes = formMain.spi.initiateSettlementEnquiry(RequestIdHelper.id("stlenq"), formMain.options);
 
             if (senqRes.isInitiated()) {
                 formAction.txtAreaFlow.setText("# Settle Enquiry Initiated. Will be updated with Progress." + "\n");

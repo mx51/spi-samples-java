@@ -252,10 +252,6 @@ public class FormMain implements WindowListener {
 
         spi.setPosInfo("assembly", "2.4.0");
         options = new TransactionOptions();
-        options.setCustomerReceiptFooter("");
-        options.setCustomerReceiptHeader("");
-        options.setMerchantReceiptFooter("");
-        options.setMerchantReceiptHeader("");
 
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
         spi.setStatusChangedHandler(this::onSpiStatusChanged);
@@ -803,7 +799,7 @@ public class FormMain implements WindowListener {
                     formAction.txtAreaFlow.append("# RRN: " + cashoutResponse.getRRN() + "\n");
                     formAction.txtAreaFlow.append("# Scheme: " + cashoutResponse.getSchemeName() + "\n");
                     formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
-                    formTransactions.txtAreaReceipt.append(cashoutResponse.getCustomerReceipt().trim() + "\n");
+                    formTransactions.txtAreaReceipt.append(!cashoutResponse.wasCustomerReceiptPrinted() ? cashoutResponse.getCustomerReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                 }
                 break;
             case UNKNOWN:
@@ -846,7 +842,7 @@ public class FormMain implements WindowListener {
                     formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
                     formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
                     formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
-                    formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
+                    formTransactions.txtAreaReceipt.append(!purchaseResponse.wasCustomerReceiptPrinted() ? purchaseResponse.getCustomerReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                 }
                 break;
             case UNKNOWN:
@@ -893,7 +889,7 @@ public class FormMain implements WindowListener {
                     Settlement settleResponse = new Settlement(txState.getResponse());
                     formAction.txtAreaFlow.append("# Response: " + settleResponse.getResponseText() + "\n");
                     formAction.txtAreaFlow.append("# Merchant receipt:" + "\n");
-                    formAction.txtAreaFlow.append(settleResponse.getMerchantReceipt().trim() + "\n");
+                    formAction.txtAreaFlow.append(!settleResponse.wasMerchantReceiptPrinted() ? settleResponse.getMerchantReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                     formAction.txtAreaFlow.append("# Period start: " + settleResponse.getPeriodStartTime() + "\n");
                     formAction.txtAreaFlow.append("# Period end: " + settleResponse.getPeriodEndTime() + "\n");
                     formAction.txtAreaFlow.append("# Settlement time: " + settleResponse.getTriggeredTime() + "\n");
@@ -917,7 +913,7 @@ public class FormMain implements WindowListener {
                     formAction.txtAreaFlow.append("# Response: " + settleResponse.getResponseText() + "\n");
                     formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
                     formAction.txtAreaFlow.append("# Merchant receipt:" + "\n");
-                    formTransactions.txtAreaReceipt.append(settleResponse.getMerchantReceipt().trim() + "\n");
+                    formTransactions.txtAreaReceipt.append(!settleResponse.wasMerchantReceiptPrinted() ? settleResponse.getMerchantReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                 }
                 break;
             case UNKNOWN:
@@ -936,7 +932,7 @@ public class FormMain implements WindowListener {
                     Settlement settleResponse = new Settlement(txState.getResponse());
                     formAction.txtAreaFlow.append("# Response: " + settleResponse.getResponseText() + "\n");
                     formAction.txtAreaFlow.append("# Merchant receipt:" + "\n");
-                    formAction.txtAreaFlow.append(settleResponse.getMerchantReceipt().trim() + "\n");
+                    formAction.txtAreaFlow.append(!settleResponse.wasMerchantReceiptPrinted() ? settleResponse.getMerchantReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                     formAction.txtAreaFlow.append("# Period start: " + settleResponse.getPeriodStartTime() + "\n");
                     formAction.txtAreaFlow.append("# Period end: " + settleResponse.getPeriodEndTime() + "\n");
                     formAction.txtAreaFlow.append("# Settlement time: " + settleResponse.getTriggeredTime() + "\n");
@@ -960,7 +956,7 @@ public class FormMain implements WindowListener {
                     formAction.txtAreaFlow.append("# Response: " + settleResponse.getResponseText() + "\n");
                     formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
                     formAction.txtAreaFlow.append("# Merchant receipt:" + "\n");
-                    formTransactions.txtAreaReceipt.append(settleResponse.getMerchantReceipt().trim() + "\n");
+                    formTransactions.txtAreaReceipt.append(!settleResponse.wasMerchantReceiptPrinted() ? settleResponse.getMerchantReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                 }
                 break;
             case UNKNOWN:
