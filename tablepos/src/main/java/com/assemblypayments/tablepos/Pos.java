@@ -240,6 +240,7 @@ public class Pos {
         Bill bill = billsStore.get(billPayment.getBillId());
         bill.outstandingAmount -= billPayment.getPurchaseAmount();
         bill.tippedAmount += billPayment.getTipAmount();
+        bill.surchargeAmount += billPayment.getSurchargeAmount();
 
         if (bill.outstandingAmount == 0) {
             bill.locked = false;
@@ -968,12 +969,13 @@ public class Pos {
         public int totalAmount = 0;
         public int outstandingAmount = 0;
         public int tippedAmount = 0;
+        public int surchargeAmount = 0;
         public boolean locked;
 
         @Override
         public String toString() {
-            return String.format("%s - Table:%s Operator Id:%s Label:%s Total:%.2f Outstanding:%.2f Tips:%.2f Locked:%b",
-                    billId, tableId, operatorId, label, totalAmount / 100.0, outstandingAmount / 100.0, tippedAmount / 100.0, locked);
+            return String.format("%s - Table:%s Operator Id:%s Label:%s Total:%.2f Outstanding:%.2f Tips:%.2f Surcharge:%.2f Locked:%b",
+                    billId, tableId, operatorId, label, totalAmount / 100.0, outstandingAmount / 100.0, tippedAmount / 100.0, surchargeAmount / 100.0, locked);
         }
     }
 
