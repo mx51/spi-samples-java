@@ -589,11 +589,7 @@ public class Pos {
                     break;
 
                 case "tables":
-                    if (spInput.length != 2) {
-                        System.out.print("Missing Parameters!");
-                    } else {
-                        printTables();
-                    }
+                    printTables();
                     System.out.print("> ");
                     break;
 
