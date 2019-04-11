@@ -295,7 +295,7 @@ public class Pos {
 
         if (tableToBillMapping.size() > 0) {
             for (Map.Entry<String, String> item : tableToBillMapping.entrySet()) {
-                if (billsStore.get(item.getValue()).operatorId.equals(operatorId) && billsStore.get(item.getValue()).outstandingAmount > 0) {
+                if (billsStore.get(item.getValue()).operatorId.equals(operatorId) && billsStore.get(item.getValue()).outstandingAmount > 0 && !billsStore.get(item.getValue()).locked) {
                     if (!isOpenTables) {
                         System.out.println("#    Open Tables: ");
                         isOpenTables = true;
