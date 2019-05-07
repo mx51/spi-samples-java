@@ -5,6 +5,7 @@ import com.assemblypayments.spi.SpiPayAtTable;
 import com.assemblypayments.spi.model.*;
 import com.assemblypayments.spi.util.RequestIdHelper;
 import com.assemblypayments.utils.SystemHelper;
+import com.google.gson.Gson;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +22,8 @@ import java.util.*;
 public class Pos {
 
     private static Logger LOG = LogManager.getLogger("spi");
+
+    private static final Gson GSON = new Gson();
 
     /**
      * My Bills Store.
