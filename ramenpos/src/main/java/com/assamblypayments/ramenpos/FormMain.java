@@ -9,6 +9,10 @@ import org.apache.logging.log4j.Logger;
 import javax.swing.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
 
 import static com.assemblypayments.spi.Spi.getVersion;
 import static javax.swing.JOptionPane.*;
@@ -49,14 +53,17 @@ public class FormMain implements WindowListener {
     private String serialNumber = "";
     private boolean autoAddressEnabled;
 
-    final String multilineHtml = "<html><body style='width: 250px'>";
+    private final String multilineHtml = "<html><body style='width: 250px'>";
 
     static FormAction formAction;
-    static FormTransactions formTransactions;
+    private static FormTransactions formTransactions;
     static FormMain formMain;
     static JFrame transactionsFrame;
     static JFrame mainFrame;
     static JDialog actionDialog;
+
+    static HashMap<String, String> secretsFile = new HashMap<>();
+    private boolean isStarted;
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -65,8 +72,8 @@ public class FormMain implements WindowListener {
                     return;
 
                 spi.setTestMode(testModeCheckBox.isSelected());
-                spi.setAutoAddressResolution(autoAddressEnabled);
                 spi.setSerialNumber(txtSerialNumber.getText());
+                spi.setAutoAddressResolution(autoAddressEnabled);
             } catch (Exception ex) {
                 LOG.error("Failed while setting values", ex.getMessage());
                 showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
@@ -109,6 +116,7 @@ public class FormMain implements WindowListener {
                     if (!areControlsValidForSecrets())
                         return;
 
+                    isStarted = false;
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
                     Start();
                     break;
@@ -175,7 +183,45 @@ public class FormMain implements WindowListener {
             actionDialog.setResizable(false);
             actionDialog.addWindowListener(formAction);
             actionDialog.pack();
+
+            if (new File("Secrets.bin").exists()) {
+                secretsFile = formMain.readFromBinaryFile("Secrets.bin");
+                formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
+                formMain.txtPosId.setText(secretsFile.get("PosId"));
+                formMain.txtSecrets.setText(secretsFile.get("Secrets"));
+            }
         });
+    }
+
+    public static <T> void writeToBinaryFile(String filePath, T objectToWrite, boolean append) {
+        try {
+            FileOutputStream fos = new FileOutputStream(filePath, append);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(objectToWrite);
+            oos.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void saveSecrets() {
+        secretsFile.put("PosId", formMain.posId);
+        secretsFile.put("EftposAddress", formMain.eftposAddress);
+        secretsFile.put("Secrets", formMain.spiSecrets.getEncKey() + ":" + formMain.spiSecrets.getHmacKey());
+        formMain.writeToBinaryFile("Secrets.bin", formMain.secretsFile, false);
+    }
+
+    private static <T> T readFromBinaryFile(String filePath) {
+        try {
+            FileInputStream fos = new FileInputStream(filePath);
+            ObjectInputStream ois = new ObjectInputStream(fos);
+            //noinspection unchecked
+            T object = (T) ois.readObject();
+            ois.close();
+            return object;
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private boolean areControlsValid(boolean isPairing) {
@@ -250,8 +296,7 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        spi.setPosInfo("assembly", "2.4.0");
-        options = new TransactionOptions();
+        spi.setPosInfo("assembly", "2.6.0");
 
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
         spi.setStatusChangedHandler(this::onSpiStatusChanged);
@@ -273,15 +318,25 @@ public class FormMain implements WindowListener {
             LOG.error(ex.getMessage());
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
+
+        if (!isStarted) {
+            printStatusAndActions();
+        }
     }
 
     private void onDeviceAddressChanged(DeviceAddressStatus deviceAddressStatus) {
         btnAction.setEnabled(false);
         if (spi.getCurrentStatus() == SpiStatus.UNPAIRED) {
-            if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
-                txtDeviceAddress.setText(deviceAddressStatus.getAddress());
-                btnAction.setEnabled(true);
-                showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+            if (deviceAddressStatus != null) {
+                if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
+                    txtDeviceAddress.setText(deviceAddressStatus.getAddress());
+                    btnAction.setEnabled(true);
+                    showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                } else {
+                    showMessageDialog(null, "The serial number is invalid or the IP address have not changed", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                }
+            } else {
+                showMessageDialog(null, "The serial number is invalid or the IP address have not changed", "Error : Device Address Not Updated", ERROR_MESSAGE);
             }
         }
     }
@@ -431,6 +486,11 @@ public class FormMain implements WindowListener {
                         formAction.btnAction2.setVisible(false);
                         formAction.btnAction3.setVisible(false);
                         btnTransactions.setVisible(false);
+                        try {
+                            Files.deleteIfExists(Paths.get("Secrets.bin"));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         getUnvisibleActionComponents();
                         break;
 
@@ -538,6 +598,7 @@ public class FormMain implements WindowListener {
             case PAIRED_CONNECTED:
                 switch (spi.getCurrentFlow()) {
                     case IDLE:
+                        formMain.saveSecrets();
                         btnAction.setText(ComponentLabels.UN_PAIR);
                         formAction.lblFlowMessage.setText("# --> SPI Status Changed: " +
                                 spi.getCurrentStatus());
@@ -673,6 +734,7 @@ public class FormMain implements WindowListener {
                         case GET_LAST_TRANSACTION:
                             handleFinishedGetLastTransaction(txState);
                             break;
+
                         default:
                             formAction.txtAreaFlow.append("# CAN'T HANDLE TX TYPE: " + txState.getType() + "\n");
                             break;
@@ -996,6 +1058,7 @@ public class FormMain implements WindowListener {
     public void windowOpened(WindowEvent e) {
         btnAction.setText(ComponentLabels.PAIR);
         txtDeviceAddress.setEnabled(false);
+        isStarted = true;
         Start();
     }
 

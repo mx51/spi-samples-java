@@ -5,7 +5,6 @@ import com.assemblypayments.spi.SpiPayAtTable;
 import com.assemblypayments.spi.model.*;
 import com.assemblypayments.spi.util.RequestIdHelper;
 import com.assemblypayments.utils.SystemHelper;
-import com.google.gson.Gson;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,8 +21,6 @@ import java.util.*;
 public class Pos {
 
     private static Logger LOG = LogManager.getLogger("spi");
-
-    private static final Gson GSON = new Gson();
 
     /**
      * My Bills Store.
@@ -47,6 +44,8 @@ public class Pos {
      */
     private HashMap<String, String> assemblyBillDataStore = new HashMap<>();
 
+    List<String> allowedOperatorIdList = new ArrayList<>();
+
     private Spi spi;
     private SpiPayAtTable pat;
     private String posId = "TABLEPOS1";
@@ -66,7 +65,7 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
-            spi.setPosInfo("assembly", "2.5.0");
+            spi.setPosInfo("assembly", "2.6.0");
             options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
@@ -105,8 +104,8 @@ public class Pos {
             }
         });
 
-        pat = spi.enablePayAtTable();
-        pat.getConfig().setLabelTableId("Table Number");
+        pat = new SpiPayAtTable(spi);
+        enablePayAtTable();
         pat.setGetBillStatusDelegate(new SpiPayAtTable.GetBillStatusDelegate() {
             @Override
             public BillStatusResponse getBillStatus(String billId, String tableId, String operatorId, boolean paymentFlowSatarted) {
@@ -447,24 +446,36 @@ public class Pos {
 
     private void printActions() {
         System.out.println("# ----------- TABLE ACTIONS ------------");
-        System.out.println("# [open:12:3:vip:false] - start a new bill for table 12, operator Id 3, Label is vip, Lock is false");
-        System.out.println("# [add:12:1000]         - add $10.00 to the bill of table 12");
-        System.out.println("# [close:12]            - close table 12");
-        System.out.println("# [lock:12:true]        - Lock/Unlock table 12");
-        System.out.println("# [tables]              - list open tables");
-        System.out.println("# [table:12]            - print current bill for table 12");
-        System.out.println("# [bill:9876789876]     - print bill with ID 9876789876");
+        System.out.println("# [open:12:3:vip:true/false] - start a new bill for table 12, operator Id 3, Label is vip, Lock is false");
+        System.out.println("# [add:12:1000]              - add $10.00 to the bill of table 12");
+        System.out.println("# [close:12]                 - close table 12");
+        System.out.println("# [lock:12:true/false]       - Lock/Unlock table 12");
+        System.out.println("# [tables]                   - list open tables");
+        System.out.println("# [table:12]                 - print current bill for table 12");
+        System.out.println("# [bill:9876789876]          - print bill with ID 9876789876");
         System.out.println("#");
 
         if (spi.getCurrentFlow() == SpiFlow.IDLE) {
+            System.out.println("# ----------- TABLE CONFIG ------------");
+            System.out.println("# [pat_all_enable]       - enable/disable pay at table");
+            System.out.println("# [pat_enabled:true/false]           - enable/disable pay at table");
+            System.out.println("# [operatorid_enabled:true/false]    - enable/disable operator id property");
+            System.out.println("# [set_allowed_operatorid:2]         - set allowed operator id");
+            System.out.println("# [equal_split:true/false]           - enable/disable equal split property");
+            System.out.println("# [split_by_amount:true/false]       - enable/disable split by amount property");
+            System.out.println("# [tipping:true/false]               - enable/disable tipping property");
+            System.out.println("# [summary_report:true/false]        - enable/disable operator id");
+            System.out.println("# [set_label_operatorid:Operator Id] - set operatorid label");
+            System.out.println("# [set_label_tableid:Table Number]   - set tableid label");
+            System.out.println("# [set_label_paybutton:Pay At Table] - set pay button label");
             System.out.println("# ----------- OTHER ACTIONS ------------");
             System.out.println("# [purchase:1200]     - quick purchase transaction");
             System.out.println("# [refund:1000:false] - hand out a refund, suppress password is false, $10.00!");
             System.out.println("# [settle]            - initiate settlement");
-            System.out.println("#");
-            System.out.println("# [rcpt_from_eftpos:true]     - offer customer receipt from EFTPOS");
-            System.out.println("# [sig_flow_from_eftpos:true] - signature flow to be handled by EFTPOS");
-            System.out.println("# [print_merchant_copy:true]  - add printing of footers and headers onto the existing EFTPOS receipt provided by payment application");
+            System.out.println("# ----------- PRINTING CONFIG ------------");
+            System.out.println("# [rcpt_from_eftpos:true/false]     - offer customer receipt from EFTPOS");
+            System.out.println("# [sig_flow_from_eftpos:true/false] - signature flow to be handled by EFTPOS");
+            System.out.println("# [print_merchant_copy:true/false]  - add printing of footers and headers onto the existing EFTPOS receipt provided by payment application");
             System.out.println("# [receipt_header:myheader]   - set header for the receipt");
             System.out.println("# [receipt_footer:myfooter]   - set footer for the receipt");
             System.out.println("#");
@@ -715,6 +726,102 @@ public class Pos {
                     System.out.print("> ");
                     break;
 
+                case "pat_enabled":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setPayAtTableEnabled(Boolean.parseBoolean(spInput[1]));
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "pat_all_enable":
+                    enablePayAtTable();
+                    pat.pushPayAtTableConfig();
+                    break;
+
+                case "operatorid_enabled":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setOperatorIdEnabled(Boolean.parseBoolean(spInput[1]));
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "equal_split":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setEqualSplitEnabled(Boolean.parseBoolean(spInput[1]));
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "split_by_amount":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setSplitByAmountEnabled(Boolean.parseBoolean(spInput[1]));
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "tipping":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setTippingEnabled(Boolean.parseBoolean(spInput[1]));
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "summary_report":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setSummaryReportEnabled(Boolean.parseBoolean(spInput[1]));
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "set_allowed_operatorid":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        allowedOperatorIdList.add(spInput[1]);
+                        pat.getConfig().setAllowedOperatorIds(allowedOperatorIdList);
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "set_label_operatorid":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setLabelOperatorId(spInput[1]);
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "set_label_tableid":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setLabelTableId(spInput[1]);
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "set_label_paybutton":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setLabelPayButton(spInput[1]);
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
                 case "pair":
                     boolean pairingInited = spi.pair();
                     if (!pairingInited) System.out.println("## -> Could not start pairing. Check settings.");
@@ -778,6 +885,7 @@ public class Pos {
             }
         }
         System.out.println("# BaBye!");
+
         persistState();
 
         // Dump arguments for next session
@@ -898,6 +1006,20 @@ public class Pos {
         return Long.toString(System.currentTimeMillis());
     }
 
+    private void enablePayAtTable() {
+        pat.getConfig().setPayAtTableEnabled(true);
+        pat.getConfig().setOperatorIdEnabled(true);
+        pat.getConfig().setAllowedOperatorIds(new ArrayList<String>());
+        pat.getConfig().setEqualSplitEnabled(true);
+        pat.getConfig().setSplitByAmountEnabled(true);
+        pat.getConfig().setSummaryReportEnabled(true);
+        pat.getConfig().setTippingEnabled(true);
+        pat.getConfig().setLabelOperatorId("Operator ID");
+        pat.getConfig().setLabelPayButton("Pay at Table");
+        pat.getConfig().setLabelTableId("Table Number");
+        pat.getConfig().setTableRetrievalEnabled(true);
+    }
+
     //endregion
 
     //region Persistence
@@ -953,9 +1075,9 @@ public class Pos {
         }
     }
 
-    //endregion
+//endregion
 
-    //region My Model
+//region My Model
 
     static class Bill implements Serializable {
         public String billId;
@@ -975,6 +1097,6 @@ public class Pos {
         }
     }
 
-    //endregion
+//endregion
 
 }
