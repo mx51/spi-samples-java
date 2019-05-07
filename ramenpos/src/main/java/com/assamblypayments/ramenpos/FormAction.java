@@ -198,7 +198,7 @@ public class FormAction implements WindowListener {
 
     private void doRefund() {
         int amount = Integer.parseInt(txtAction1.getText());
-        InitiateTxResult refund = formMain.spi.initiateRefundTx("rfnd-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), amount, cboxAction1.isSelected());
+        InitiateTxResult refund = formMain.spi.initiateRefundTx("rfnd-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), amount, cboxAction1.isSelected(), formMain.options);
 
         if (refund.isInitiated()) {
             txtAreaFlow.setText("# Refund Initiated. Will be updated with Progress." + "\n");
@@ -210,7 +210,7 @@ public class FormAction implements WindowListener {
     private void doCashOut() {
         int amount = Integer.parseInt(txtAction1.getText());
         int surchargeAmount = Integer.parseInt(txtAction2.getText());
-        InitiateTxResult coRes = formMain.spi.initiateCashoutOnlyTx("cshout-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), amount, surchargeAmount);
+        InitiateTxResult coRes = formMain.spi.initiateCashoutOnlyTx("cshout-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), amount, surchargeAmount, formMain.options);
 
         if (coRes.isInitiated()) {
             txtAreaFlow.setText("# Cashout Initiated. Will be updated with Progress." + "\n");
@@ -222,7 +222,7 @@ public class FormAction implements WindowListener {
     private void doMoto() {
         int amount = Integer.parseInt(txtAction1.getText());
         int surchargeAmount = Integer.parseInt(txtAction2.getText());
-        InitiateTxResult motoRes = formMain.spi.initiateMotoPurchaseTx("moto-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), amount, surchargeAmount);
+        InitiateTxResult motoRes = formMain.spi.initiateMotoPurchaseTx("moto-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), amount, surchargeAmount, cboxAction1.isSelected(), formMain.options);
 
         if (motoRes.isInitiated()) {
             txtAreaFlow.setText("# Moto Initiated. Will be updated with Progress." + "\n");

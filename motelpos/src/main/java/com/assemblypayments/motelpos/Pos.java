@@ -29,6 +29,7 @@ public class Pos {
     private String eftposAddress = "192.168.1.6";
     private Secrets spiSecrets = null;
     private String serialNumber = "";
+    private TransactionOptions options;
 
     public static void main(String[] args) {
         new Pos().start(args);
@@ -41,15 +42,21 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi.setPosInfo("assembly", "2.5.0");
+            options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
             System.out.println("# Please ensure you followed all the configuration steps on your machine.");
             System.out.println("# ");
             return;
+        } catch (Exception ex) {
+            System.out.println("# ");
+            System.out.println(ex.getMessage());
+            System.out.println("# ");
         }
 
-        spi.setPosInfo("assembly", "2.4.0");
+        spi.setPosInfo("assembly", "2.5.0");
 
         spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
             @Override
@@ -173,7 +180,7 @@ public class Pos {
                                 System.out.println("# RRN: " + details.getRRN());
                                 System.out.println("# Scheme: " + details.getSchemeName());
                                 System.out.println("# Customer receipt:");
-                                System.out.println(details.getCustomerReceipt().trim());
+                                System.out.println(!details.wasCustomerReceiptPrinted() ? details.getCustomerReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                                 break;
                             }
                             case ACCOUNT_VERIFY: {
@@ -184,7 +191,7 @@ public class Pos {
                                 System.out.println("# RRN: " + details.getRRN());
                                 System.out.println("# Scheme: " + details.getSchemeName());
                                 System.out.println("# Merchant receipt:");
-                                System.out.println(details.getMerchantReceipt().trim());
+                                System.out.println(!details.wasMerchantReceiptPrinted() ? details.getMerchantReceipt().trim() : "# PRINTED FROM EFTPOS" + "\n");
                                 break;
                             }
                             default:
@@ -258,6 +265,13 @@ public class Pos {
             System.out.println("# [preauth_extend:12345678] - extend existing preauth 12345678");
             System.out.println("# [preauth_complete:12345678:8000:100] - complete preauth with ID 12345678 for $80.00 and $1.00 surcharge amount");
             System.out.println("# [preauth_cancel:12345678] - cancel preauth with ID 12345678");
+            System.out.println("#");
+            System.out.println("# [rcpt_from_eftpos:true] - offer customer receipt from EFTPOS");
+            System.out.println("# [sig_flow_from_eftpos:true] - signature flow to be handled by EFTPOS");
+            System.out.println("# [print_merchant_copy:true] - add printing of footers and headers onto the existing EFTPOS receipt provided by payment application");
+            System.out.println("# [receipt_header:myheader] - set header for the receipt");
+            System.out.println("# [receipt_footer:myfooter] - set footer for the receipt");
+            System.out.println("#");
         }
 
         if (spi.getCurrentStatus() == SpiStatus.UNPAIRED && spi.getCurrentFlow() == SpiFlow.IDLE) {
@@ -310,6 +324,7 @@ public class Pos {
         System.out.println("# --------------- STATUS ------------------");
         System.out.println("# " + posId + " <-> EFTPOS: " + eftposAddress + " #");
         System.out.println("# SPI STATUS: " + spi.getCurrentStatus() + "     FLOW: " + spi.getCurrentFlow() + " #");
+        System.out.println("# SPI CONFIG: " + spi.getConfig());
         System.out.println("# CASH ONLY! #");
         System.out.println("# -----------------------------------------");
         System.out.println("# SPI: v" + Spi.getVersion());
@@ -318,8 +333,8 @@ public class Pos {
     private void acceptUserInput() {
         final Scanner scanner = new Scanner(System.in);
         boolean bye = false;
-        while (!bye && scanner.hasNext()) {
-            final String input = scanner.next();
+        while (!bye && scanner.hasNextLine()) {
+            final String input = scanner.nextLine();
             if (StringUtils.isEmpty(input)) {
                 System.out.print("> ");
                 continue;
@@ -354,7 +369,7 @@ public class Pos {
                 break;
 
             case "preauth_open":
-                initRes = spiPreauth.initiateOpenTx("propen-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), Integer.parseInt(spInput[1]));
+                initRes = spiPreauth.initiateOpenTx("propen-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), Integer.parseInt(spInput[1]), options);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -362,7 +377,7 @@ public class Pos {
 
             case "preauth_topup":
                 preauthId = spInput[1];
-                initRes = spiPreauth.initiateTopupTx("prtopup-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
+                initRes = spiPreauth.initiateTopupTx("prtopup-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]), options);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -370,7 +385,7 @@ public class Pos {
 
             case "preauth_topdown":
                 preauthId = spInput[1];
-                initRes = spiPreauth.initiatePartialCancellationTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]));
+                initRes = spiPreauth.initiatePartialCancellationTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]), options);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -378,7 +393,7 @@ public class Pos {
 
             case "preauth_extend":
                 preauthId = spInput[1];
-                initRes = spiPreauth.initiateExtendTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId);
+                initRes = spiPreauth.initiateExtendTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, options);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -386,7 +401,7 @@ public class Pos {
 
             case "preauth_cancel":
                 preauthId = spInput[1];
-                initRes = spiPreauth.initiateCancelTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId);
+                initRes = spiPreauth.initiateCancelTx("prtopd-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, options);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
@@ -394,10 +409,56 @@ public class Pos {
 
             case "preauth_complete":
                 preauthId = spInput[1];
-                initRes = spiPreauth.initiateCompletionTx("prcomp-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]), Integer.parseInt(spInput[3]));
+                initRes = spiPreauth.initiateCompletionTx("prcomp-" + preauthId + "-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date()), preauthId, Integer.parseInt(spInput[2]), Integer.parseInt(spInput[3]), options);
                 if (!initRes.isInitiated()) {
                     System.out.println("# Could not initiate preauth request: " + initRes.getMessage() + ". Please retry.");
                 }
+                break;
+
+            case "rcpt_from_eftpos":
+                spi.getConfig().setPromptForCustomerCopyOnEftpos("true".equalsIgnoreCase(spInput[1]));
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "sig_flow_from_eftpos":
+                spi.getConfig().setSignatureFlowOnEftpos("true".equalsIgnoreCase(spInput[1]));
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "print_merchant_copy":
+                spi.getConfig().setPrintMerchantCopy("true".equalsIgnoreCase(spInput[1]));
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "receipt_header":
+                String inputHeader = spInput[1].replace("\\r\\n", "\r\n");
+                inputHeader = inputHeader.replace("\\\\", "\\");
+                options.setCustomerReceiptHeader(inputHeader);
+                options.setMerchantReceiptHeader(inputHeader);
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
+                break;
+
+            case "receipt_footer":
+                String inputFooter = spInput[1].replace("\\r\\n", "\r\n");
+                inputFooter = inputFooter.replace("\\\\", "\\");
+                options.setCustomerReceiptFooter(inputFooter);
+                options.setMerchantReceiptFooter(inputFooter);
+                SystemHelper.clearConsole();
+                spi.ackFlowEndedAndBackToIdle();
+                printStatusAndActions();
+                System.out.print("> ");
                 break;
 
             case "pos_id":

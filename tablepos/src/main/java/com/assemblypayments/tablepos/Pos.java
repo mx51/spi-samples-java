@@ -5,13 +5,13 @@ import com.assemblypayments.spi.SpiPayAtTable;
 import com.assemblypayments.spi.model.*;
 import com.assemblypayments.spi.util.RequestIdHelper;
 import com.assemblypayments.utils.SystemHelper;
+import com.google.gson.Gson;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Scanner;
+import java.util.*;
 
 /**
  * NOTE: THIS PROJECT USES THE 2.1.x of the SPI Client Library
@@ -22,6 +22,8 @@ import java.util.Scanner;
 public class Pos {
 
     private static Logger LOG = LogManager.getLogger("spi");
+
+    private static final Gson GSON = new Gson();
 
     /**
      * My Bills Store.
@@ -50,6 +52,8 @@ public class Pos {
     private String posId = "TABLEPOS1";
     private String eftposAddress = "192.168.1.9";
     private Secrets spiSecrets = null;
+    private String serialNumber = "";
+    private TransactionOptions options;
 
     public static void main(String[] args) {
         new Pos().start(args);
@@ -61,15 +65,21 @@ public class Pos {
 
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
-            spi = new Spi(posId, "", eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
-            spi.setPosInfo("assembly", "2.4.0");
+            spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi.setPosInfo("assembly", "2.5.0");
+            options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
             System.out.println("# Please ensure you followed all the configuration steps on your machine.");
             System.out.println("# ");
             return;
+        } catch (Exception ex) {
+            System.out.println("# ");
+            System.out.println(ex.getMessage());
+            System.out.println("# ");
         }
+
         spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
             @Override
             public void onEvent(SpiStatus value) {
@@ -99,14 +109,26 @@ public class Pos {
         pat.getConfig().setLabelTableId("Table Number");
         pat.setGetBillStatusDelegate(new SpiPayAtTable.GetBillStatusDelegate() {
             @Override
-            public BillStatusResponse getBillStatus(String billId, String tableId, String operatorId) {
-                return payAtTableGetBillDetails(billId, tableId, operatorId);
+            public BillStatusResponse getBillStatus(String billId, String tableId, String operatorId, boolean paymentFlowSatarted) {
+                return payAtTableGetBillDetails(billId, tableId, operatorId, paymentFlowSatarted);
             }
         });
         pat.setBillPaymentReceivedDelegate(new SpiPayAtTable.BillPaymentReceivedDelegate() {
             @Override
             public BillStatusResponse getBillReceived(BillPayment billPayment, String updatedBillData) {
                 return payAtTableBillPaymentReceived(billPayment, updatedBillData);
+            }
+        });
+        pat.setBillPaymentFlowEndedDelegate(new SpiPayAtTable.BillPaymentFlowEndedDelegate() {
+            @Override
+            public void getBillPaymentFlowEnded(Message message) {
+                payAtTableBillPaymentFlowEnded(message);
+            }
+        });
+        pat.setGetOpenTablesDelegate(new SpiPayAtTable.GetOpenTablesDelegate() {
+            @Override
+            public GetOpenTablesResponse getOpenTables(String operatorId) {
+                return payAtTableGetOpenTables(operatorId);
             }
         });
 
@@ -156,7 +178,7 @@ public class Pos {
 
     //region PayAtTable Delegates
 
-    private BillStatusResponse payAtTableGetBillDetails(String billId, String tableId, String operatorId) {
+    private BillStatusResponse payAtTableGetBillDetails(String billId, String tableId, String operatorId, boolean paymentFlowStarted) {
         if (billId == null || StringUtils.isWhitespace(billId)) {
             // We were not given a billId, just a tableId.
             // This means that we are being asked for the bill by its table number.
@@ -185,10 +207,20 @@ public class Pos {
 
         Bill myBill = billsStore.get(billId);
 
+        if (myBill.locked && paymentFlowStarted) {
+            System.out.println("# Table is Locked!");
+            BillStatusResponse response = new BillStatusResponse();
+            response.setResult(BillRetrievalResult.INVALID_TABLE_ID);
+            return response;
+        }
+
+        myBill.locked = paymentFlowStarted;
+
         BillStatusResponse response = new BillStatusResponse();
         response.setResult(BillRetrievalResult.SUCCESS);
         response.setBillId(billId);
         response.setTableId(tableId);
+        response.setOperatorId(operatorId);
         response.setTotalAmount(myBill.totalAmount);
         response.setOutstandingAmount(myBill.outstandingAmount);
         String billData = assemblyBillDataStore.get(billId);
@@ -208,6 +240,15 @@ public class Pos {
         Bill bill = billsStore.get(billPayment.getBillId());
         bill.outstandingAmount -= billPayment.getPurchaseAmount();
         bill.tippedAmount += billPayment.getTipAmount();
+        bill.surchargeAmount += billPayment.getSurchargeAmount();
+
+        if (bill.outstandingAmount == 0) {
+            bill.locked = false;
+        } else {
+            bill.locked = true;
+        }
+
+
         System.out.println("Updated bill: " + bill);
         System.out.print("> ");
 
@@ -221,6 +262,63 @@ public class Pos {
         response.setResult(BillRetrievalResult.SUCCESS);
         response.setOutstandingAmount(bill.outstandingAmount);
         response.setTotalAmount(bill.totalAmount);
+        return response;
+    }
+
+    private void payAtTableBillPaymentFlowEnded(Message message) {
+        BillPaymentFlowEndedResponse billPaymentFlowEndedResponse = new BillPaymentFlowEndedResponse(message);
+
+        if (!billsStore.containsKey(billPaymentFlowEndedResponse.getBillId())) {
+            System.out.println("# Incorrect Bill Id!");
+            return;
+        }
+
+        Bill myBill = billsStore.get(billPaymentFlowEndedResponse.getBillId());
+        myBill.locked = false;
+
+        System.out.println("Bill Id: " + billPaymentFlowEndedResponse.getBillId() +
+                ", Table Id: " + billPaymentFlowEndedResponse.getTableId() +
+                ", Operator Id: " + billPaymentFlowEndedResponse.getOperatorId() +
+                ", Bill OutStanding Amount: $" + billPaymentFlowEndedResponse.getBillOutstandingAmount() / 100.0 +
+                ", Bill Total Amount: $" + billPaymentFlowEndedResponse.getBillTotalAmount() / 100.0 +
+                ", Card Total Count: " + billPaymentFlowEndedResponse.getCardTotalCount() +
+                ", Card Total Amount: $" + billPaymentFlowEndedResponse.getCardTotalAmount() / 100.0 +
+                ", Cash Total Count: " + billPaymentFlowEndedResponse.getCashTotalCount() +
+                ", Cash Total Amount: $" + billPaymentFlowEndedResponse.getCashTotalAmount() / 100.0 +
+                ", Locked: " + myBill.locked);
+        System.out.println("> ");
+    }
+
+    private GetOpenTablesResponse payAtTableGetOpenTables(String operatorId) {
+        List<OpenTablesEntry> openTablesEntryList = new ArrayList<>();
+        boolean isOpenTables = false;
+
+        if (tableToBillMapping.size() > 0) {
+            for (Map.Entry<String, String> item : tableToBillMapping.entrySet()) {
+                if (billsStore.get(item.getValue()).operatorId.equals(operatorId) && billsStore.get(item.getValue()).outstandingAmount > 0 && !billsStore.get(item.getValue()).locked) {
+                    if (!isOpenTables) {
+                        System.out.println("#    Open Tables: ");
+                        isOpenTables = true;
+                    }
+
+                    OpenTablesEntry openTablesEntry = new OpenTablesEntry(item.getKey(), billsStore.get(item.getValue()).label, billsStore.get(item
+                            .getValue()).outstandingAmount);
+
+                    System.out.println("Table Id: " + item.getKey() +
+                            ", Label: " + billsStore.get(item.getValue()).label +
+                            ", Outstanding Amount: $" + billsStore.get(item.getValue()).outstandingAmount / 100.0);
+
+                    openTablesEntryList.add(openTablesEntry);
+                }
+            }
+        }
+
+        if (!isOpenTables) {
+            System.out.println("# No Open Tables.");
+        }
+
+        GetOpenTablesResponse response = new GetOpenTablesResponse();
+        response.setOpenTablesEntryData(GetOpenTablesResponse.toOpenTablesData(openTablesEntryList));
         return response;
     }
 
@@ -349,19 +447,26 @@ public class Pos {
 
     private void printActions() {
         System.out.println("# ----------- TABLE ACTIONS ------------");
-        System.out.println("# [open:12]         - start a new bill for table 12");
-        System.out.println("# [add:12:1000]     - add $10.00 to the bill of table 12");
-        System.out.println("# [close:12]        - close table 12");
-        System.out.println("# [tables]          - list open tables");
-        System.out.println("# [table:12]        - print current bill for table 12");
-        System.out.println("# [bill:9876789876] - print bill with ID 9876789876");
+        System.out.println("# [open:12:3:vip:false] - start a new bill for table 12, operator Id 3, Label is vip, Lock is false");
+        System.out.println("# [add:12:1000]         - add $10.00 to the bill of table 12");
+        System.out.println("# [close:12]            - close table 12");
+        System.out.println("# [lock:12:true]        - Lock/Unlock table 12");
+        System.out.println("# [tables]              - list open tables");
+        System.out.println("# [table:12]            - print current bill for table 12");
+        System.out.println("# [bill:9876789876]     - print bill with ID 9876789876");
         System.out.println("#");
 
         if (spi.getCurrentFlow() == SpiFlow.IDLE) {
             System.out.println("# ----------- OTHER ACTIONS ------------");
-            System.out.println("# [purchase:1200] - quick purchase transaction");
-            System.out.println("# [yuck]          - hand out a refund!");
-            System.out.println("# [settle]        - initiate settlement");
+            System.out.println("# [purchase:1200]     - quick purchase transaction");
+            System.out.println("# [refund:1000:false] - hand out a refund, suppress password is false, $10.00!");
+            System.out.println("# [settle]            - initiate settlement");
+            System.out.println("#");
+            System.out.println("# [rcpt_from_eftpos:true]     - offer customer receipt from EFTPOS");
+            System.out.println("# [sig_flow_from_eftpos:true] - signature flow to be handled by EFTPOS");
+            System.out.println("# [print_merchant_copy:true]  - add printing of footers and headers onto the existing EFTPOS receipt provided by payment application");
+            System.out.println("# [receipt_header:myheader]   - set header for the receipt");
+            System.out.println("# [receipt_footer:myfooter]   - set footer for the receipt");
             System.out.println("#");
         }
         System.out.println("# ----------- SETTINGS ACTIONS ------------");
@@ -415,7 +520,7 @@ public class Pos {
         System.out.println("# " + posId + " <-> EFTPOS: " + eftposAddress + " #");
         System.out.println("# SPI STATUS: " + spi.getCurrentStatus() + "     FLOW: " + spi.getCurrentFlow() + " #");
         System.out.println("# ----------------TABLES-------------------");
-        System.out.println("#    Open Tables: " + tableToBillMapping.size());
+        System.out.println("# Open Tables   : " + tableToBillMapping.size());
         System.out.println("# Bills in Store: " + billsStore.size());
         System.out.println("# Assembly Bills: " + assemblyBillDataStore.size());
         System.out.println("# -----------------------------------------");
@@ -425,32 +530,61 @@ public class Pos {
     private void acceptUserInput() {
         final Scanner scanner = new Scanner(System.in);
         boolean bye = false;
-        while (!bye && scanner.hasNext()) {
-            final String input = scanner.next();
+        while (!bye && scanner.hasNextLine()) {
+            final String input = scanner.nextLine();
             String[] spInput = input.split(":");
             switch (spInput[0].toLowerCase()) {
                 case "open":
-                    openTable(spInput[1]);
+                    if (spInput.length != 5) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        openTable(spInput[1], spInput[2], spInput[3], Boolean.parseBoolean(spInput[4]));
+                    }
                     System.out.print("> ");
                     break;
 
                 case "close":
-                    closeTable(spInput[1]);
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        closeTable(spInput[1]);
+                    }
+                    System.out.print("> ");
+                    break;
+
+                case "lock":
+                    if (spInput.length != 3) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        lockTable(spInput[1], Boolean.parseBoolean(spInput[2]));
+                    }
                     System.out.print("> ");
                     break;
 
                 case "add":
-                    addToTable(spInput[1], Integer.parseInt(spInput[2]));
+                    if (spInput.length != 3) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        addToTable(spInput[1], Integer.parseInt(spInput[2]));
+                    }
                     System.out.print("> ");
                     break;
 
                 case "table":
-                    printTable(spInput[1]);
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        printTable(spInput[1]);
+                    }
                     System.out.print("> ");
                     break;
 
                 case "bill":
-                    printBill(spInput[1]);
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        printBill(spInput[1]);
+                    }
                     System.out.print("> ");
                     break;
 
@@ -460,41 +594,124 @@ public class Pos {
                     break;
 
                 case "purchase":
-                    InitiateTxResult pRes = spi.initiatePurchaseTx("purchase-" + System.currentTimeMillis(), Integer.parseInt(spInput[1]), 0, 0, false);
-                    if (!pRes.isInitiated()) {
-                        System.out.println("# Could not initiate purchase: " + pRes.getMessage() + ". Please retry.");
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        InitiateTxResult pRes = spi.initiatePurchaseTx("purchase-" + System.currentTimeMillis(), Integer.parseInt(spInput[1]), 0, 0, false, options);
+                        if (!pRes.isInitiated()) {
+                            System.out.println("# Could not initiate purchase: " + pRes.getMessage() + ". Please retry.");
+                        }
                     }
+                    System.out.print("> ");
                     break;
 
                 case "refund":
-                case "yuck":
-                    InitiateTxResult yuckRes = spi.initiateRefundTx("yuck-" + System.currentTimeMillis(), 1000);
-                    if (!yuckRes.isInitiated()) {
-                        System.out.println("# Could not initiate refund: " + yuckRes.getMessage() + ". Please retry.");
+                    if (spInput.length != 3) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        InitiateTxResult yuckRes = spi.initiateRefundTx("yuck-" + System.currentTimeMillis(), Integer.parseInt(spInput[1]), Boolean.parseBoolean(spInput[2]), options);
+                        if (!yuckRes.isInitiated()) {
+                            System.out.println("# Could not initiate refund: " + yuckRes.getMessage() + ". Please retry.");
+                        }
                     }
+                    System.out.print("> ");
+                    break;
+
+                case "rcpt_from_eftpos":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        spi.getConfig().setPromptForCustomerCopyOnEftpos("true".equalsIgnoreCase(spInput[1]));
+                        SystemHelper.clearConsole();
+                        spi.ackFlowEndedAndBackToIdle();
+                        printStatusAndActions();
+                    }
+                    System.out.print("> ");
+                    break;
+
+                case "sig_flow_from_eftpos":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        spi.getConfig().setSignatureFlowOnEftpos("true".equalsIgnoreCase(spInput[1]));
+                        SystemHelper.clearConsole();
+                        spi.ackFlowEndedAndBackToIdle();
+                        printStatusAndActions();
+                    }
+                    System.out.print("> ");
+                    break;
+
+                case "print_merchant_copy":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        spi.getConfig().setPrintMerchantCopy("true".equalsIgnoreCase(spInput[1]));
+                        SystemHelper.clearConsole();
+                        spi.ackFlowEndedAndBackToIdle();
+                        printStatusAndActions();
+                    }
+                    System.out.print("> ");
+                    break;
+
+                case "receipt_header":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        String inputHeader = spInput[1].replace("\\r\\n", "\r\n");
+                        inputHeader = inputHeader.replace("\\\\", "\\");
+                        options.setCustomerReceiptHeader(inputHeader);
+                        options.setMerchantReceiptHeader(inputHeader);
+                        SystemHelper.clearConsole();
+                        spi.ackFlowEndedAndBackToIdle();
+                        printStatusAndActions();
+                    }
+                    System.out.print("> ");
+                    break;
+
+                case "receipt_footer":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        String inputFooter = spInput[1].replace("\\r\\n", "\r\n");
+                        inputFooter = inputFooter.replace("\\\\", "\\");
+                        options.setCustomerReceiptFooter(inputFooter);
+                        options.setMerchantReceiptFooter(inputFooter);
+                        SystemHelper.clearConsole();
+                        spi.ackFlowEndedAndBackToIdle();
+                        printStatusAndActions();
+                    }
+                    System.out.print("> ");
                     break;
 
                 case "pos_id":
-                    SystemHelper.clearConsole();
-                    if (spi.setPosId(spInput[1])) {
-                        posId = spInput[1];
-                        System.out.println("## -> POS ID now set to " + posId);
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
                     } else {
-                        System.out.println("## -> Could not set POS ID");
+                        SystemHelper.clearConsole();
+                        if (spi.setPosId(spInput[1])) {
+                            posId = spInput[1];
+                            System.out.println("## -> POS ID now set to " + posId);
+                        } else {
+                            System.out.println("## -> Could not set POS ID");
+                        }
+                        printStatusAndActions();
                     }
-                    printStatusAndActions();
                     System.out.print("> ");
                     break;
 
                 case "eftpos_address":
-                    SystemHelper.clearConsole();
-                    if (spi.setEftposAddress(spInput[1])) {
-                        eftposAddress = spInput[1];
-                        System.out.println("## -> EFTPOS address now set to " + eftposAddress);
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
                     } else {
-                        System.out.println("## -> Could not set EFTPOS address");
+                        SystemHelper.clearConsole();
+                        if (spi.setEftposAddress(spInput[1])) {
+                            eftposAddress = spInput[1];
+                            System.out.println("## -> EFTPOS address now set to " + eftposAddress);
+                        } else {
+                            System.out.println("## -> Could not set EFTPOS address");
+                        }
+                        printStatusAndActions();
                     }
-                    printStatusAndActions();
                     System.out.print("> ");
                     break;
 
@@ -528,7 +745,7 @@ public class Pos {
                     break;
 
                 case "settle":
-                    InitiateTxResult settleRes = spi.initiateSettleTx(RequestIdHelper.id("settle"));
+                    InitiateTxResult settleRes = spi.initiateSettleTx(RequestIdHelper.id("settle"), options);
                     if (!settleRes.isInitiated()) {
                         System.out.println("# Could not initiate settlement: " + settleRes.getMessage() + ". Please retry.");
                     }
@@ -574,7 +791,7 @@ public class Pos {
 
     //region My Pos Functions
 
-    private void openTable(String tableId) {
+    private void openTable(String tableId, String operatorId, String label, boolean locked) {
         if (tableToBillMapping.containsKey(tableId)) {
             System.out.println("Table already open: " + billsStore.get(tableToBillMapping.get(tableId)));
             return;
@@ -583,6 +800,9 @@ public class Pos {
         Bill newBill = new Bill();
         newBill.billId = newBillId();
         newBill.tableId = tableId;
+        newBill.operatorId = operatorId;
+        newBill.label = label;
+        newBill.locked = locked;
         billsStore.put(newBill.billId, newBill);
         tableToBillMapping.put(newBill.tableId, newBill.billId);
         System.out.println("Opened: " + newBill);
@@ -594,6 +814,12 @@ public class Pos {
             return;
         }
         Bill bill = billsStore.get(tableToBillMapping.get(tableId));
+
+        if (bill.locked) {
+            System.out.println("Table is Locked!");
+            return;
+        }
+
         bill.totalAmount += amountCents;
         bill.outstandingAmount += amountCents;
         System.out.println("Updated: " + bill);
@@ -604,7 +830,14 @@ public class Pos {
             System.out.println("Table not open.");
             return;
         }
+
         Bill bill = billsStore.get(tableToBillMapping.get(tableId));
+
+        if (bill.locked) {
+            System.out.println("Table is Locked!");
+            return;
+        }
+
         if (bill.outstandingAmount > 0) {
             System.out.println("Bill not paid yet: " + bill);
             return;
@@ -613,6 +846,23 @@ public class Pos {
         assemblyBillDataStore.remove(bill.billId);
         System.out.println("Closed: " + bill);
     }
+
+    private void lockTable(String tableId, boolean locked) {
+        if (!tableToBillMapping.containsKey(tableId)) {
+            System.out.println("Table not open.");
+            return;
+        }
+
+        Bill bill = billsStore.get(tableToBillMapping.get(tableId));
+        bill.locked = locked;
+
+        if (locked) {
+            System.out.println("Locked: " + bill);
+        } else {
+            System.out.println("UnLocked: " + bill);
+        }
+    }
+
 
     private void printTable(String tableId) {
         if (!tableToBillMapping.containsKey(tableId)) {
@@ -710,14 +960,18 @@ public class Pos {
     static class Bill implements Serializable {
         public String billId;
         public String tableId;
+        public String operatorId;
+        public String label;
         public int totalAmount = 0;
         public int outstandingAmount = 0;
         public int tippedAmount = 0;
+        public int surchargeAmount = 0;
+        public boolean locked;
 
         @Override
         public String toString() {
-            return String.format("%s - Table:%s Total:%.2f Outstanding:%.2f Tips:%.2f",
-                    billId, tableId, totalAmount / 100.0, outstandingAmount / 100.0, tippedAmount / 100.0);
+            return String.format("%s - Table:%s Operator Id:%s Label:%s Total:%.2f Outstanding:%.2f Tips:%.2f Surcharge:%.2f Locked:%b",
+                    billId, tableId, operatorId, label, totalAmount / 100.0, outstandingAmount / 100.0, tippedAmount / 100.0, surchargeAmount / 100.0, locked);
         }
     }
 
