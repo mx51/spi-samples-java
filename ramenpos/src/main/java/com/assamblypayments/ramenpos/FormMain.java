@@ -62,8 +62,10 @@ public class FormMain implements WindowListener {
     static JFrame mainFrame;
     static JDialog actionDialog;
 
-    static HashMap<String, String> secretsFile = new HashMap<>();
+    private static HashMap<String, String> secretsFile = new HashMap<>();
     private boolean isStarted;
+    private String validDeviceAddress = "";
+    private String validSerialNumber = "";
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -72,15 +74,15 @@ public class FormMain implements WindowListener {
                     return;
 
                 spi.setTestMode(testModeCheckBox.isSelected());
-                spi.setSerialNumber(txtSerialNumber.getText());
                 spi.setAutoAddressResolution(autoAddressEnabled);
+                spi.setSerialNumber(txtSerialNumber.getText());
             } catch (Exception ex) {
                 LOG.error("Failed while setting values", ex.getMessage());
                 showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
             }
         });
         autoCheckBox.addActionListener(e -> {
-            btnAction.setEnabled(!autoCheckBox.isSelected());
+            btnAction.setEnabled(true);
             btnSave.setEnabled(autoCheckBox.isSelected());
             testModeCheckBox.setSelected(autoCheckBox.isSelected());
             testModeCheckBox.setEnabled(autoCheckBox.isSelected());
@@ -183,13 +185,6 @@ public class FormMain implements WindowListener {
             actionDialog.setResizable(false);
             actionDialog.addWindowListener(formAction);
             actionDialog.pack();
-
-            if (new File("Secrets.bin").exists()) {
-                secretsFile = formMain.readFromBinaryFile("Secrets.bin");
-                formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
-                formMain.txtPosId.setText(secretsFile.get("PosId"));
-                formMain.txtSecrets.setText(secretsFile.get("Secrets"));
-            }
         });
     }
 
@@ -331,12 +326,22 @@ public class FormMain implements WindowListener {
                 if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
                     txtDeviceAddress.setText(deviceAddressStatus.getAddress());
                     btnAction.setEnabled(true);
+                    validSerialNumber = txtSerialNumber.getText();
+                    validDeviceAddress = txtDeviceAddress.getText();
                     showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
                 } else {
-                    showMessageDialog(null, "The serial number is invalid or the IP address have not changed", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                    txtDeviceAddress.setText("");
+                    showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
                 }
             } else {
-                showMessageDialog(null, "The serial number is invalid or the IP address have not changed", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                if (!txtDeviceAddress.getText().equals(validDeviceAddress) && validSerialNumber.equals(txtSerialNumber.getText())) {
+                    txtDeviceAddress.setText(validDeviceAddress);
+                } else {
+                    if (!validSerialNumber.equals(txtSerialNumber.getText())) {
+                        txtDeviceAddress.setText("");
+                    }
+                }
+                showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
             }
         }
     }
@@ -1056,8 +1061,26 @@ public class FormMain implements WindowListener {
 
     @Override
     public void windowOpened(WindowEvent e) {
-        btnAction.setText(ComponentLabels.PAIR);
-        txtDeviceAddress.setEnabled(false);
+        if (new File("Secrets.bin").exists()) {
+            secretsFile = formMain.readFromBinaryFile("Secrets.bin");
+            formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
+            formMain.txtPosId.setText(secretsFile.get("PosId"));
+            formMain.txtSecrets.setText(secretsFile.get("Secrets"));
+            formMain.autoCheckBox.setSelected(false);
+            formMain.autoCheckBox.setEnabled(false);
+            formMain.testModeCheckBox.setSelected(false);
+            formMain.testModeCheckBox.setEnabled(false);
+            formMain.btnSave.setEnabled(false);
+            formMain.secretsCheckBox.setSelected(true);
+            formMain.btnAction.setEnabled(true);
+            formMain.btnAction.setText(ComponentLabels.START);
+            formMain.txtSecrets.setEnabled(true);
+            formMain.txtDeviceAddress.setEnabled(true);
+            formMain.txtSerialNumber.setEnabled(false);
+        } else {
+            btnAction.setText(ComponentLabels.PAIR);
+            txtDeviceAddress.setEnabled(false);
+        }
         isStarted = true;
         Start();
     }

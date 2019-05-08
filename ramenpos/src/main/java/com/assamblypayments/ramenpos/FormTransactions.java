@@ -40,8 +40,6 @@ public class FormTransactions implements WindowListener {
     public JButton btnHeaderFooter;
     public JPanel pnlSwitch;
     public JButton btnSettings;
-    private JButton btnZipPurchase;
-    private JButton btnZipRefund;
 
     public FormTransactions() {
         cboxReceiptFromEftpos.addItemListener(e -> {
