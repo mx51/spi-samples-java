@@ -107,8 +107,8 @@ public class Pos {
             }
         });
 
-        pat = new SpiPayAtTable(spi);
-        enablePayAtTable();
+        pat = spi.enablePayAtTable();
+        enablePayAtTableConfig();
         pat.setGetBillStatusDelegate(new SpiPayAtTable.GetBillStatusDelegate() {
             @Override
             public BillStatusResponse getBillStatus(String billId, String tableId, String operatorId, boolean paymentFlowSatarted) {
@@ -739,7 +739,7 @@ public class Pos {
                     break;
 
                 case "pat_all_enable":
-                    enablePayAtTable();
+                    enablePayAtTableConfig();
                     pat.pushPayAtTableConfig();
                     break;
 
@@ -1009,7 +1009,7 @@ public class Pos {
         return Long.toString(System.currentTimeMillis());
     }
 
-    private void enablePayAtTable() {
+    private void enablePayAtTableConfig() {
         pat.getConfig().setPayAtTableEnabled(true);
         pat.getConfig().setOperatorIdEnabled(true);
         pat.getConfig().setAllowedOperatorIds(new ArrayList<String>());

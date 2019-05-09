@@ -64,8 +64,6 @@ public class FormMain implements WindowListener {
 
     private static HashMap<String, String> secretsFile = new HashMap<>();
     private boolean isStarted;
-    private String validDeviceAddress = "";
-    private String validSerialNumber = "";
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -128,7 +126,6 @@ public class FormMain implements WindowListener {
 
                     try {
                         spi.setPosId(posId);
-                        spi.setSerialNumber(serialNumber);
                         spi.setEftposAddress(eftposAddress);
                         mainFrame.setEnabled(false);
                         mainFrame.pack();
@@ -200,10 +197,10 @@ public class FormMain implements WindowListener {
     }
 
     public void saveSecrets() {
-        secretsFile.put("PosId", formMain.posId);
-        secretsFile.put("EftposAddress", formMain.eftposAddress);
-        secretsFile.put("Secrets", formMain.spiSecrets.getEncKey() + ":" + formMain.spiSecrets.getHmacKey());
-        formMain.writeToBinaryFile("Secrets.bin", formMain.secretsFile, false);
+        secretsFile.put("PosId", posId);
+        secretsFile.put("EftposAddress", eftposAddress);
+        secretsFile.put("Secrets", spiSecrets.getEncKey() + ":" + spiSecrets.getHmacKey());
+        writeToBinaryFile("Secrets.bin", secretsFile, false);
     }
 
     private static <T> T readFromBinaryFile(String filePath) {
@@ -323,25 +320,28 @@ public class FormMain implements WindowListener {
         btnAction.setEnabled(false);
         if (spi.getCurrentStatus() == SpiStatus.UNPAIRED) {
             if (deviceAddressStatus != null) {
-                if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
-                    txtDeviceAddress.setText(deviceAddressStatus.getAddress());
-                    btnAction.setEnabled(true);
-                    validSerialNumber = txtSerialNumber.getText();
-                    validDeviceAddress = txtDeviceAddress.getText();
-                    showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
-                } else {
-                    txtDeviceAddress.setText("");
-                    showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                }
-            } else {
-                if (!txtDeviceAddress.getText().equals(validDeviceAddress) && validSerialNumber.equals(txtSerialNumber.getText())) {
-                    txtDeviceAddress.setText(validDeviceAddress);
-                } else {
-                    if (!validSerialNumber.equals(txtSerialNumber.getText())) {
+                switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
+                    case SUCCESS:
+                        txtDeviceAddress.setText(deviceAddressStatus.getAddress());
+                        btnAction.setEnabled(true);
+                        showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                        break;
+                    case ERROR:
                         txtDeviceAddress.setText("");
-                    }
+                        showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    case ADDRESS_NOT_CHANGED:
+                        btnAction.setEnabled(true);
+                        showMessageDialog(null, "The IP address have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    case SERIAL_NUMBER_NOT_CHANGED:
+                        btnAction.setEnabled(true);
+                        showMessageDialog(null, "The Serial Number have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    default:
+                        showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
                 }
-                showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
             }
         }
     }
