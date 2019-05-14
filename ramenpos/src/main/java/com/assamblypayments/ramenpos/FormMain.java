@@ -85,6 +85,7 @@ public class FormMain implements WindowListener {
             testModeCheckBox.setSelected(autoCheckBox.isSelected());
             testModeCheckBox.setEnabled(autoCheckBox.isSelected());
             txtDeviceAddress.setEnabled(!autoCheckBox.isSelected());
+            txtSerialNumber.setEnabled(true);
         });
         btnTransactions.addActionListener(e -> {
             mainFrame.setEnabled(false);
@@ -99,7 +100,7 @@ public class FormMain implements WindowListener {
             autoCheckBox.setEnabled(!secretsCheckBox.isSelected());
             testModeCheckBox.setEnabled(!secretsCheckBox.isSelected());
             btnSave.setEnabled(!secretsCheckBox.isSelected());
-            btnAction.setEnabled(secretsCheckBox.isSelected());
+            btnAction.setEnabled(true);
 
             if (secretsCheckBox.isSelected()) {
                 btnAction.setText(ComponentLabels.START);
