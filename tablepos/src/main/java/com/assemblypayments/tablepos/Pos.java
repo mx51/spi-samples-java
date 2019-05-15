@@ -460,17 +460,18 @@ public class Pos {
 
         if (spi.getCurrentFlow() == SpiFlow.IDLE) {
             System.out.println("# ----------- TABLE CONFIG ------------");
-            System.out.println("# [pat_all_enable]       - enable/disable pay at table");
-            System.out.println("# [pat_enabled:true/false]           - enable/disable pay at table");
-            System.out.println("# [operatorid_enabled:true/false]    - enable/disable operator id property");
-            System.out.println("# [set_allowed_operatorid:2]         - set allowed operator id");
-            System.out.println("# [equal_split:true/false]           - enable/disable equal split property");
-            System.out.println("# [split_by_amount:true/false]       - enable/disable split by amount property");
-            System.out.println("# [tipping:true/false]               - enable/disable tipping property");
-            System.out.println("# [summary_report:true/false]        - enable/disable operator id");
-            System.out.println("# [set_label_operatorid:Operator Id] - set operatorid label");
-            System.out.println("# [set_label_tableid:Table Number]   - set tableid label");
-            System.out.println("# [set_label_paybutton:Pay At Table] - set pay button label");
+            System.out.println("# [pat_all_enable]                     - enable/disable pay at table");
+            System.out.println("# [pat_enabled:true/false]             - enable/disable pay at table");
+            System.out.println("# [operatorid_enabled:true/false]      - enable/disable operator id property");
+            System.out.println("# [set_allowed_operatorid:2]           - set allowed operator id");
+            System.out.println("# [equal_split:true/false]             - enable/disable equal split property");
+            System.out.println("# [split_by_amount:true/false]         - enable/disable split by amount property");
+            System.out.println("# [tipping:true/false]                 - enable/disable tipping property");
+            System.out.println("# [summary_report:true/false]          - enable/disable operator id");
+            System.out.println("# [set_label_operatorid:Operator Id]   - set operatorid label");
+            System.out.println("# [set_label_tableid:Table Number]     - set tableid label");
+            System.out.println("# [set_label_paybutton:Pay At Table]   - set pay button label");
+            System.out.println("# [table_retrieval_enabled:true/false] - enable/disable operator id");
             System.out.println("# ----------- OTHER ACTIONS ------------");
             System.out.println("# [purchase:1200]     - quick purchase transaction");
             System.out.println("# [refund:1000:false] - hand out a refund, suppress password is false, $10.00!");
@@ -812,6 +813,15 @@ public class Pos {
                         System.out.print("Missing Parameters!");
                     } else {
                         pat.getConfig().setLabelTableId(spInput[1]);
+                        pat.pushPayAtTableConfig();
+                    }
+                    break;
+
+                case "table_retrieval_enabled":
+                    if (spInput.length != 2) {
+                        System.out.print("Missing Parameters!");
+                    } else {
+                        pat.getConfig().setTableRetrievalEnabled(Boolean.parseBoolean(spInput[1]));
                         pat.pushPayAtTableConfig();
                     }
                     break;
