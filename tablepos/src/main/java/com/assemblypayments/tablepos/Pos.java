@@ -471,7 +471,7 @@ public class Pos {
             System.out.println("# [set_label_operatorid:Operator Id]   - set operatorid label");
             System.out.println("# [set_label_tableid:Table Number]     - set tableid label");
             System.out.println("# [set_label_paybutton:Pay At Table]   - set pay button label");
-            System.out.println("# [table_retrieval_enabled:true/false] - enable/disable operator id");
+            System.out.println("# [table_retrieval_enabled:true/false] - enable/disable table retrieval button");
             System.out.println("# ----------- OTHER ACTIONS ------------");
             System.out.println("# [purchase:1200]     - quick purchase transaction");
             System.out.println("# [refund:1000:false] - hand out a refund, suppress password is false, $10.00!");
