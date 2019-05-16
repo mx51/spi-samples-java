@@ -200,6 +200,9 @@ public class FormMain implements WindowListener {
     public void saveSecrets() {
         secretsFile.put("PosId", posId);
         secretsFile.put("EftposAddress", eftposAddress);
+        secretsFile.put("SerialNumber", serialNumber);
+        secretsFile.put("AutoAddressEnabled", String.valueOf(autoAddressEnabled));
+        secretsFile.put("TestMode", String.valueOf(testModeCheckBox.isSelected()));
         secretsFile.put("Secrets", spiSecrets.getEncKey() + ":" + spiSecrets.getHmacKey());
         writeToBinaryFile("Secrets.bin", secretsFile, false);
     }
@@ -1065,19 +1068,22 @@ public class FormMain implements WindowListener {
         if (new File("Secrets.bin").exists()) {
             secretsFile = formMain.readFromBinaryFile("Secrets.bin");
             formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
+            formMain.txtDeviceAddress.setEnabled(true);
             formMain.txtPosId.setText(secretsFile.get("PosId"));
-            formMain.txtSecrets.setText(secretsFile.get("Secrets"));
-            formMain.autoCheckBox.setSelected(false);
+            formMain.txtPosId.setEnabled(true);
+            formMain.txtSerialNumber.setText(secretsFile.get("SerialNumber"));
+            formMain.txtSerialNumber.setEnabled(false);
+            formMain.autoAddressEnabled = Boolean.parseBoolean(secretsFile.get("AutoAddressEnabled"));
+            formMain.autoCheckBox.setSelected(autoAddressEnabled);
             formMain.autoCheckBox.setEnabled(false);
-            formMain.testModeCheckBox.setSelected(false);
+            formMain.testModeCheckBox.setSelected(Boolean.parseBoolean(secretsFile.get("TestMode")));
             formMain.testModeCheckBox.setEnabled(false);
+            formMain.txtSecrets.setText(secretsFile.get("Secrets"));
+            formMain.txtSecrets.setEnabled(true);
             formMain.btnSave.setEnabled(false);
             formMain.secretsCheckBox.setSelected(true);
             formMain.btnAction.setEnabled(true);
             formMain.btnAction.setText(ComponentLabels.START);
-            formMain.txtSecrets.setEnabled(true);
-            formMain.txtDeviceAddress.setEnabled(true);
-            formMain.txtSerialNumber.setEnabled(false);
         } else {
             btnAction.setText(ComponentLabels.PAIR);
             txtDeviceAddress.setEnabled(false);
