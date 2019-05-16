@@ -138,13 +138,17 @@ public class FormMain implements WindowListener {
                     }
                     break;
                 case ComponentLabels.UN_PAIR:
-                    formMain.secretsCheckBox.setEnabled(true);
+                    formMain.secretsCheckBox.setEnabled(false);
+                    formMain.txtSecrets.setText("");
                     formMain.autoCheckBox.setEnabled(true);
                     formMain.testModeCheckBox.setEnabled(true);
                     formMain.btnSave.setEnabled(true);
                     formMain.txtPosId.setEnabled(true);
+                    formMain.txtPosId.setText("");
                     formMain.txtSerialNumber.setEnabled(true);
-                    formMain.txtDeviceAddress.setEnabled(true);
+                    formMain.txtSerialNumber.setText("");
+                    formMain.txtDeviceAddress.setEnabled(false);
+                    formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
                     spi.unpair();
                     break;
@@ -330,9 +334,13 @@ public class FormMain implements WindowListener {
                         btnAction.setEnabled(true);
                         showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
                         break;
-                    case ERROR:
+                    case INVALID_SERIAL_NUMBER:
                         txtDeviceAddress.setText("");
                         showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    case DEVICE_SERVICE_ERROR:
+                        txtDeviceAddress.setText("");
+                        showMessageDialog(null, "Device service is down!", "Error : Device Address Not Updated", ERROR_MESSAGE);
                         break;
                     case ADDRESS_NOT_CHANGED:
                         btnAction.setEnabled(true);
