@@ -182,20 +182,6 @@ public class FormTransactions implements WindowListener {
             transactionsFrame.pack();
         });
         btnSettle.addActionListener(e -> {
-            formAction.btnAction1.setEnabled(true);
-            formAction.btnAction1.setVisible(false);
-            formAction.btnAction2.setVisible(false);
-            formAction.btnAction3.setVisible(false);
-            formAction.lblAction1.setVisible(false);
-            formAction.txtAction1.setVisible(false);
-            formAction.lblAction2.setVisible(false);
-            formAction.txtAction2.setVisible(false);
-            formAction.lblAction3.setVisible(false);
-            formAction.txtAction3.setVisible(false);
-            formAction.lblAction4.setVisible(false);
-            formAction.txtAction4.setVisible(false);
-            formAction.cboxAction1.setVisible(false);
-
             InitiateTxResult settleRes = formMain.spi.initiateSettleTx(RequestIdHelper.id("settle"), formMain.options);
 
             if (settleRes.isInitiated()) {
@@ -203,27 +189,8 @@ public class FormTransactions implements WindowListener {
             } else {
                 formAction.txtAreaFlow.setText("# Could not initiate settlement: " + settleRes.getMessage() + ". Please Retry." + "\n");
             }
-
-            transactionsFrame.setEnabled(false);
-            actionDialog.setVisible(true);
-            actionDialog.pack();
-            transactionsFrame.pack();
         });
         btnSettleEnq.addActionListener(e -> {
-            formAction.btnAction1.setEnabled(true);
-            formAction.btnAction1.setVisible(false);
-            formAction.btnAction2.setVisible(false);
-            formAction.btnAction3.setVisible(false);
-            formAction.lblAction1.setVisible(false);
-            formAction.txtAction1.setVisible(false);
-            formAction.lblAction2.setVisible(false);
-            formAction.txtAction2.setVisible(false);
-            formAction.lblAction3.setVisible(false);
-            formAction.txtAction3.setVisible(false);
-            formAction.lblAction4.setVisible(false);
-            formAction.txtAction4.setVisible(false);
-            formAction.cboxAction1.setVisible(false);
-
             InitiateTxResult senqRes = formMain.spi.initiateSettlementEnquiry(RequestIdHelper.id("stlenq"), formMain.options);
 
             if (senqRes.isInitiated()) {
@@ -231,11 +198,6 @@ public class FormTransactions implements WindowListener {
             } else {
                 formAction.txtAreaFlow.setText("# Could not initiate settlement enquiry: " + senqRes.getMessage() + ". Please Retry." + "\n");
             }
-
-            transactionsFrame.setEnabled(false);
-            actionDialog.setVisible(true);
-            actionDialog.pack();
-            transactionsFrame.pack();
         });
         btnLastTrans.addActionListener(e -> {
             formAction.btnAction1.setEnabled(true);

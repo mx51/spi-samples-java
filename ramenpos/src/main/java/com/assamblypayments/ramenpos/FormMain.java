@@ -571,8 +571,12 @@ public class FormMain implements WindowListener {
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentTxFlowState().isFinished()) {
-                            formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                            if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                                formAction.btnAction1.setVisible(true);
+                            } else {
+                                formAction.btnAction1.setVisible(false);
+                            }
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -583,11 +587,18 @@ public class FormMain implements WindowListener {
                                     getOKActionComponents();
                                     break;
                                 case FAILED:
-                                    formAction.btnAction1.setEnabled(true);
-                                    formAction.btnAction1.setVisible(true);
-                                    formAction.btnAction1.setText(ComponentLabels.RETRY);
-                                    formAction.btnAction2.setVisible(true);
-                                    formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.RETRY);
+                                        formAction.btnAction2.setVisible(true);
+                                        formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    } else {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.OK);
+                                        formAction.btnAction2.setVisible(false);
+                                    }
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
@@ -640,8 +651,12 @@ public class FormMain implements WindowListener {
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentTxFlowState().isFinished()) {
-                            formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                            if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                                formAction.btnAction1.setVisible(true);
+                            } else {
+                                formAction.btnAction1.setVisible(false);
+                            }
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -652,11 +667,18 @@ public class FormMain implements WindowListener {
                                     getOKActionComponents();
                                     break;
                                 case FAILED:
-                                    formAction.btnAction1.setEnabled(true);
-                                    formAction.btnAction1.setVisible(true);
-                                    formAction.btnAction1.setText(ComponentLabels.RETRY);
-                                    formAction.btnAction2.setVisible(true);
-                                    formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.RETRY);
+                                        formAction.btnAction2.setVisible(true);
+                                        formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    } else {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.OK);
+                                        formAction.btnAction2.setVisible(false);
+                                    }
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
