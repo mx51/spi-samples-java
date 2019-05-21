@@ -62,7 +62,7 @@ public class FormMain implements WindowListener {
     static JFrame mainFrame;
     static JDialog actionDialog;
 
-    private static HashMap<String, String> secretsFile = new HashMap<>();
+    private static HashMap<String, String> secretsFile = new HashMap<String, String>();
     private boolean isStarted;
 
     private FormMain() {
