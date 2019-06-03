@@ -58,6 +58,8 @@ public class FormMain implements WindowListener {
     static JFrame mainFrame;
     static JDialog actionDialog;
 
+    private boolean isStartButtonClicked;
+
     private FormMain() {
         btnSave.addActionListener(e -> {
             try {
@@ -109,8 +111,12 @@ public class FormMain implements WindowListener {
                     if (!areControlsValidForSecrets())
                         return;
 
+                    spi.setTestMode(testModeCheckBox.isSelected());
+                    spi.setAutoAddressResolution(autoAddressEnabled);
+                    spi.setSerialNumber(txtSerialNumber.getText());
+
+                    isStartButtonClicked = true;
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
-                    Start();
                     break;
                 case ComponentLabels.PAIR:
                     if (!areControlsValid(true))
@@ -139,6 +145,7 @@ public class FormMain implements WindowListener {
                     formMain.txtDeviceAddress.setEnabled(true);
                     mainFrame.setEnabled(false);
                     spi.unpair();
+                    spi.setSerialNumber("");
                     break;
                 default:
                     break;
@@ -206,6 +213,7 @@ public class FormMain implements WindowListener {
     private boolean areControlsValidForSecrets() {
         posId = txtPosId.getText();
         eftposAddress = txtDeviceAddress.getText();
+        serialNumber = txtSerialNumber.getText();
 
         if (eftposAddress == null || StringUtils.isWhitespace(eftposAddress)) {
             showMessageDialog(null, "Please provide a Eftpos address", "Error", ERROR_MESSAGE);
@@ -281,7 +289,14 @@ public class FormMain implements WindowListener {
             if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
                 txtDeviceAddress.setText(deviceAddressStatus.getAddress());
                 btnAction.setEnabled(true);
-                showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+
+                if (isStartButtonClicked) {
+                    isStartButtonClicked = false;
+                    eftposAddress = txtDeviceAddress.getText();
+                    Start();
+                } else {
+                    showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                }
             }
         }
     }
