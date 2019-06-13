@@ -9,6 +9,10 @@ import org.apache.logging.log4j.Logger;
 import javax.swing.*;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
 
 import static com.assemblypayments.spi.Spi.getVersion;
 import static javax.swing.JOptionPane.*;
@@ -49,16 +53,17 @@ public class FormMain implements WindowListener {
     private String serialNumber = "";
     private boolean autoAddressEnabled;
 
-    final String multilineHtml = "<html><body style='width: 250px'>";
+    private final String multilineHtml = "<html><body style='width: 250px'>";
 
     static FormAction formAction;
-    static FormTransactions formTransactions;
+    private static FormTransactions formTransactions;
     static FormMain formMain;
     static JFrame transactionsFrame;
     static JFrame mainFrame;
     static JDialog actionDialog;
 
-    private boolean isStartButtonClicked;
+    private static HashMap<String, String> secretsFile = new HashMap<String, String>();
+    private boolean isStartButtonClicked;;
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -75,11 +80,12 @@ public class FormMain implements WindowListener {
             }
         });
         autoCheckBox.addActionListener(e -> {
-            btnAction.setEnabled(!autoCheckBox.isSelected());
+            btnAction.setEnabled(true);
             btnSave.setEnabled(autoCheckBox.isSelected());
             testModeCheckBox.setSelected(autoCheckBox.isSelected());
             testModeCheckBox.setEnabled(autoCheckBox.isSelected());
             txtDeviceAddress.setEnabled(!autoCheckBox.isSelected());
+            txtSerialNumber.setEnabled(true);
         });
         btnTransactions.addActionListener(e -> {
             mainFrame.setEnabled(false);
@@ -94,7 +100,7 @@ public class FormMain implements WindowListener {
             autoCheckBox.setEnabled(!secretsCheckBox.isSelected());
             testModeCheckBox.setEnabled(!secretsCheckBox.isSelected());
             btnSave.setEnabled(!secretsCheckBox.isSelected());
-            btnAction.setEnabled(secretsCheckBox.isSelected());
+            btnAction.setEnabled(true);
 
             if (secretsCheckBox.isSelected()) {
                 btnAction.setText(ComponentLabels.START);
@@ -124,7 +130,6 @@ public class FormMain implements WindowListener {
 
                     try {
                         spi.setPosId(posId);
-                        spi.setSerialNumber(serialNumber);
                         spi.setEftposAddress(eftposAddress);
                         mainFrame.setEnabled(false);
                         mainFrame.pack();
@@ -136,13 +141,17 @@ public class FormMain implements WindowListener {
                     }
                     break;
                 case ComponentLabels.UN_PAIR:
-                    formMain.secretsCheckBox.setEnabled(true);
+                    formMain.secretsCheckBox.setEnabled(false);
+                    formMain.txtSecrets.setText("");
                     formMain.autoCheckBox.setEnabled(true);
                     formMain.testModeCheckBox.setEnabled(true);
                     formMain.btnSave.setEnabled(true);
                     formMain.txtPosId.setEnabled(true);
+                    formMain.txtPosId.setText("");
                     formMain.txtSerialNumber.setEnabled(true);
-                    formMain.txtDeviceAddress.setEnabled(true);
+                    formMain.txtSerialNumber.setText("");
+                    formMain.txtDeviceAddress.setEnabled(false);
+                    formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
                     spi.unpair();
                     spi.setSerialNumber("");
@@ -183,6 +192,40 @@ public class FormMain implements WindowListener {
             actionDialog.addWindowListener(formAction);
             actionDialog.pack();
         });
+    }
+
+    public static <T> void writeToBinaryFile(String filePath, T objectToWrite, boolean append) {
+        try {
+            FileOutputStream fos = new FileOutputStream(filePath, append);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(objectToWrite);
+            oos.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void saveSecrets() {
+        secretsFile.put("PosId", posId);
+        secretsFile.put("EftposAddress", eftposAddress);
+        secretsFile.put("SerialNumber", serialNumber);
+        secretsFile.put("AutoAddressEnabled", String.valueOf(autoAddressEnabled));
+        secretsFile.put("TestMode", String.valueOf(testModeCheckBox.isSelected()));
+        secretsFile.put("Secrets", spiSecrets.getEncKey() + ":" + spiSecrets.getHmacKey());
+        writeToBinaryFile("Secrets.bin", secretsFile, false);
+    }
+
+    private static <T> T readFromBinaryFile(String filePath) {
+        try {
+            FileInputStream fos = new FileInputStream(filePath);
+            ObjectInputStream ois = new ObjectInputStream(fos);
+            //noinspection unchecked
+            T object = (T) ois.readObject();
+            ois.close();
+            return object;
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private boolean areControlsValid(boolean isPairing) {
@@ -281,21 +324,47 @@ public class FormMain implements WindowListener {
             LOG.error(ex.getMessage());
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
+
+        if (!isStarted) {
+            printStatusAndActions();
+        }
     }
 
     private void onDeviceAddressChanged(DeviceAddressStatus deviceAddressStatus) {
         btnAction.setEnabled(false);
         if (spi.getCurrentStatus() == SpiStatus.UNPAIRED) {
-            if (deviceAddressStatus.getAddress() != null && !StringUtils.isWhitespace(deviceAddressStatus.getAddress())) {
-                txtDeviceAddress.setText(deviceAddressStatus.getAddress());
-                btnAction.setEnabled(true);
-
-                if (isStartButtonClicked) {
-                    isStartButtonClicked = false;
-                    eftposAddress = txtDeviceAddress.getText();
-                    Start();
-                } else {
-                    showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+            if (deviceAddressStatus != null) {
+                switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
+                    case SUCCESS:
+                        txtDeviceAddress.setText(deviceAddressStatus.getAddress());
+                        btnAction.setEnabled(true);
+                        
+                        if (isStartButtonClicked) {
+                            isStartButtonClicked = false;
+                            Start();
+                        } else {
+                            showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                        }
+                        break;
+                    case INVALID_SERIAL_NUMBER:
+                        txtDeviceAddress.setText("");
+                        showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    case DEVICE_SERVICE_ERROR:
+                        txtDeviceAddress.setText("");
+                        showMessageDialog(null, "Device service is down!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    case ADDRESS_NOT_CHANGED:
+                        btnAction.setEnabled(true);
+                        showMessageDialog(null, "The IP address have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    case SERIAL_NUMBER_NOT_CHANGED:
+                        btnAction.setEnabled(true);
+                        showMessageDialog(null, "The Serial Number have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
+                    default:
+                        showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                        break;
                 }
             }
         }
@@ -446,6 +515,11 @@ public class FormMain implements WindowListener {
                         formAction.btnAction2.setVisible(false);
                         formAction.btnAction3.setVisible(false);
                         btnTransactions.setVisible(false);
+                        try {
+                            Files.deleteIfExists(Paths.get("Secrets.bin"));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                         getUnvisibleActionComponents();
                         break;
 
@@ -509,8 +583,12 @@ public class FormMain implements WindowListener {
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentTxFlowState().isFinished()) {
-                            formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                            if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                                formAction.btnAction1.setVisible(true);
+                            } else {
+                                formAction.btnAction1.setVisible(false);
+                            }
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -521,11 +599,18 @@ public class FormMain implements WindowListener {
                                     getOKActionComponents();
                                     break;
                                 case FAILED:
-                                    formAction.btnAction1.setEnabled(true);
-                                    formAction.btnAction1.setVisible(true);
-                                    formAction.btnAction1.setText(ComponentLabels.RETRY);
-                                    formAction.btnAction2.setVisible(true);
-                                    formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.RETRY);
+                                        formAction.btnAction2.setVisible(true);
+                                        formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    } else {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.OK);
+                                        formAction.btnAction2.setVisible(false);
+                                    }
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
@@ -553,6 +638,7 @@ public class FormMain implements WindowListener {
             case PAIRED_CONNECTED:
                 switch (spi.getCurrentFlow()) {
                     case IDLE:
+                        formMain.saveSecrets();
                         btnAction.setText(ComponentLabels.UN_PAIR);
                         formAction.lblFlowMessage.setText("# --> SPI Status Changed: " +
                                 spi.getCurrentStatus());
@@ -577,8 +663,12 @@ public class FormMain implements WindowListener {
                             getUnvisibleActionComponents();
                             break;
                         } else if (!spi.getCurrentTxFlowState().isFinished()) {
-                            formAction.btnAction1.setVisible(true);
-                            formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                            if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                formAction.btnAction1.setText(ComponentLabels.CANCEL);
+                                formAction.btnAction1.setVisible(true);
+                            } else {
+                                formAction.btnAction1.setVisible(false);
+                            }
                             formAction.btnAction2.setVisible(false);
                             formAction.btnAction3.setVisible(false);
                             getUnvisibleActionComponents();
@@ -589,11 +679,18 @@ public class FormMain implements WindowListener {
                                     getOKActionComponents();
                                     break;
                                 case FAILED:
-                                    formAction.btnAction1.setEnabled(true);
-                                    formAction.btnAction1.setVisible(true);
-                                    formAction.btnAction1.setText(ComponentLabels.RETRY);
-                                    formAction.btnAction2.setVisible(true);
-                                    formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    if (spi.getCurrentTxFlowState().getType() != TransactionType.SETTLEMENT_ENQUIRY) {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.RETRY);
+                                        formAction.btnAction2.setVisible(true);
+                                        formAction.btnAction2.setText(ComponentLabels.CANCEL);
+                                    } else {
+                                        formAction.btnAction1.setEnabled(true);
+                                        formAction.btnAction1.setVisible(true);
+                                        formAction.btnAction1.setText(ComponentLabels.OK);
+                                        formAction.btnAction2.setVisible(false);
+                                    }
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
@@ -688,6 +785,7 @@ public class FormMain implements WindowListener {
                         case GET_LAST_TRANSACTION:
                             handleFinishedGetLastTransaction(txState);
                             break;
+
                         default:
                             formAction.txtAreaFlow.append("# CAN'T HANDLE TX TYPE: " + txState.getType() + "\n");
                             break;
@@ -1009,8 +1107,30 @@ public class FormMain implements WindowListener {
 
     @Override
     public void windowOpened(WindowEvent e) {
-        btnAction.setText(ComponentLabels.PAIR);
-        txtDeviceAddress.setEnabled(false);
+        if (new File("Secrets.bin").exists()) {
+            secretsFile = formMain.readFromBinaryFile("Secrets.bin");
+            formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
+            formMain.txtDeviceAddress.setEnabled(true);
+            formMain.txtPosId.setText(secretsFile.get("PosId"));
+            formMain.txtPosId.setEnabled(true);
+            formMain.txtSerialNumber.setText(secretsFile.get("SerialNumber"));
+            formMain.txtSerialNumber.setEnabled(false);
+            formMain.autoAddressEnabled = Boolean.parseBoolean(secretsFile.get("AutoAddressEnabled"));
+            formMain.autoCheckBox.setSelected(autoAddressEnabled);
+            formMain.autoCheckBox.setEnabled(false);
+            formMain.testModeCheckBox.setSelected(Boolean.parseBoolean(secretsFile.get("TestMode")));
+            formMain.testModeCheckBox.setEnabled(false);
+            formMain.txtSecrets.setText(secretsFile.get("Secrets"));
+            formMain.txtSecrets.setEnabled(true);
+            formMain.btnSave.setEnabled(false);
+            formMain.secretsCheckBox.setSelected(true);
+            formMain.btnAction.setEnabled(true);
+            formMain.btnAction.setText(ComponentLabels.START);
+        } else {
+            btnAction.setText(ComponentLabels.PAIR);
+            txtDeviceAddress.setEnabled(false);
+        }
+        isStarted = true;
         Start();
     }
 

@@ -56,8 +56,6 @@ public class Pos {
             System.out.println("# ");
         }
 
-        spi.setPosInfo("assembly", "2.5.0");
-
         spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
             @Override
             public void onEvent(SpiStatus value) {
