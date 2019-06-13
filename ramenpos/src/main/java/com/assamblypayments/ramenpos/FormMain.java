@@ -325,7 +325,7 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        if (!isStarted) {
+        if (!isStartButtonClicked) {
             printStatusAndActions();
         }
     }
@@ -1130,7 +1130,7 @@ public class FormMain implements WindowListener {
             btnAction.setText(ComponentLabels.PAIR);
             txtDeviceAddress.setEnabled(false);
         }
-        isStarted = true;
+        isStartButtonClicked = true;
         Start();
     }
 
