@@ -63,7 +63,8 @@ public class FormMain implements WindowListener {
     static JDialog actionDialog;
 
     private static HashMap<String, String> secretsFile = new HashMap<String, String>();
-    private boolean isStartButtonClicked;;
+    private boolean isStartButtonClicked;
+    private boolean isAppStarted;
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -117,11 +118,13 @@ public class FormMain implements WindowListener {
                     if (!areControlsValidForSecrets())
                         return;
 
+                    isAppStarted = false;
+                    isStartButtonClicked = true;
+
                     spi.setTestMode(testModeCheckBox.isSelected());
                     spi.setAutoAddressResolution(autoAddressEnabled);
                     spi.setSerialNumber(txtSerialNumber.getText());
 
-                    isStartButtonClicked = true;
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
                     break;
                 case ComponentLabels.PAIR:
@@ -325,7 +328,7 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        if (!isStartButtonClicked) {
+        if (!isAppStarted) {
             printStatusAndActions();
         }
     }
@@ -338,7 +341,7 @@ public class FormMain implements WindowListener {
                     case SUCCESS:
                         txtDeviceAddress.setText(deviceAddressStatus.getAddress());
                         btnAction.setEnabled(true);
-                        
+
                         if (isStartButtonClicked) {
                             isStartButtonClicked = false;
                             Start();
@@ -1130,7 +1133,7 @@ public class FormMain implements WindowListener {
             btnAction.setText(ComponentLabels.PAIR);
             txtDeviceAddress.setEnabled(false);
         }
-        isStartButtonClicked = true;
+        isAppStarted = true;
         Start();
     }
 
