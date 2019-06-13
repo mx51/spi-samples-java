@@ -258,7 +258,7 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        spi.setPosInfo("assembly", "2.4.0");
+        spi.setPosInfo("assembly", "2.6.1");
         options = new TransactionOptions();
 
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
