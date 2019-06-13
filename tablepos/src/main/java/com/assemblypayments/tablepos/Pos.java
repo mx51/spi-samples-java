@@ -290,7 +290,7 @@ public class Pos {
     }
 
     private GetOpenTablesResponse payAtTableGetOpenTables(String operatorId) {
-        List<OpenTablesEntry> openTablesEntryList = new ArrayList<>();
+        List<OpenTablesEntry> openTablesEntries = new ArrayList<>();
         boolean isOpenTables = false;
 
         if (tableToBillMapping.size() > 0) {
@@ -308,7 +308,7 @@ public class Pos {
                             ", Label: " + billsStore.get(item.getValue()).label +
                             ", Outstanding Amount: $" + billsStore.get(item.getValue()).outstandingAmount / 100.0);
 
-                    openTablesEntryList.add(openTablesEntry);
+                    openTablesEntries.add(openTablesEntry);
                 }
             }
         }
@@ -318,7 +318,7 @@ public class Pos {
         }
 
         GetOpenTablesResponse response = new GetOpenTablesResponse();
-        response.setOpenTablesEntryData(GetOpenTablesResponse.toOpenTablesData(openTablesEntryList));
+        response.setOpenTablesEntries(openTablesEntries);
         return response;
     }
 
