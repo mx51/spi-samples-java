@@ -63,7 +63,8 @@ public class FormMain implements WindowListener {
     static JDialog actionDialog;
 
     private static HashMap<String, String> secretsFile = new HashMap<String, String>();
-    private boolean isStarted;
+    private boolean isStartButtonClicked;
+    private boolean isAppStarted;
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -117,9 +118,14 @@ public class FormMain implements WindowListener {
                     if (!areControlsValidForSecrets())
                         return;
 
-                    isStarted = false;
+                    isAppStarted = false;
+                    isStartButtonClicked = true;
+
+                    spi.setTestMode(testModeCheckBox.isSelected());
+                    spi.setAutoAddressResolution(autoAddressEnabled);
+                    spi.setSerialNumber(txtSerialNumber.getText());
+
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
-                    Start();
                     break;
                 case ComponentLabels.PAIR:
                     if (!areControlsValid(true))
@@ -151,6 +157,7 @@ public class FormMain implements WindowListener {
                     formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
                     spi.unpair();
+                    spi.setSerialNumber("");
                     break;
                 default:
                     break;
@@ -252,6 +259,7 @@ public class FormMain implements WindowListener {
     private boolean areControlsValidForSecrets() {
         posId = txtPosId.getText();
         eftposAddress = txtDeviceAddress.getText();
+        serialNumber = txtSerialNumber.getText();
 
         if (eftposAddress == null || StringUtils.isWhitespace(eftposAddress)) {
             showMessageDialog(null, "Please provide a Eftpos address", "Error", ERROR_MESSAGE);
@@ -296,7 +304,8 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        spi.setPosInfo("assembly", "2.6.0");
+        spi.setPosInfo("assembly", "2.6.1");
+        options = new TransactionOptions();
 
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
         spi.setStatusChangedHandler(this::onSpiStatusChanged);
@@ -319,7 +328,7 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        if (!isStarted) {
+        if (!isAppStarted) {
             printStatusAndActions();
         }
     }
@@ -332,7 +341,13 @@ public class FormMain implements WindowListener {
                     case SUCCESS:
                         txtDeviceAddress.setText(deviceAddressStatus.getAddress());
                         btnAction.setEnabled(true);
-                        showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+
+                        if (isStartButtonClicked) {
+                            isStartButtonClicked = false;
+                            Start();
+                        } else {
+                            showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                        }
                         break;
                     case INVALID_SERIAL_NUMBER:
                         txtDeviceAddress.setText("");
@@ -1118,7 +1133,7 @@ public class FormMain implements WindowListener {
             btnAction.setText(ComponentLabels.PAIR);
             txtDeviceAddress.setEnabled(false);
         }
-        isStarted = true;
+        isAppStarted = true;
         Start();
     }
 

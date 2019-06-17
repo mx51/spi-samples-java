@@ -68,7 +68,7 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
-            spi.setPosInfo("assembly", "2.6.0");
+            spi.setPosInfo("assembly", "2.6.1");
             options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
@@ -292,7 +292,7 @@ public class Pos {
     }
 
     private GetOpenTablesResponse payAtTableGetOpenTables(String operatorId) {
-        List<OpenTablesEntry> openTablesEntryList = new ArrayList<>();
+        List<OpenTablesEntry> openTablesEntries = new ArrayList<>();
         boolean isOpenTables = false;
 
         if (tableToBillMapping.size() > 0) {
@@ -310,7 +310,7 @@ public class Pos {
                             ", Label: " + billsStore.get(item.getValue()).label +
                             ", Outstanding Amount: $" + billsStore.get(item.getValue()).outstandingAmount / 100.0);
 
-                    openTablesEntryList.add(openTablesEntry);
+                    openTablesEntries.add(openTablesEntry);
                 }
             }
         }
@@ -320,7 +320,7 @@ public class Pos {
         }
 
         GetOpenTablesResponse response = new GetOpenTablesResponse();
-        response.setOpenTablesEntryData(GetOpenTablesResponse.toOpenTablesData(openTablesEntryList));
+        response.setOpenTablesEntries(openTablesEntries);
         return response;
     }
 
