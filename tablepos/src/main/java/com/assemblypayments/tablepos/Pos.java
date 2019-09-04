@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * NOTE: THIS PROJECT USES THE 2.1.x of the SPI Client Library
@@ -57,6 +58,8 @@ public class Pos {
     private String serialNumber = "";
     private TransactionOptions options;
 
+    private static final Pattern REGEX_ITEMS_FOR_TABLEID = Pattern.compile("[a-zA-Z0-9]*$");
+
     public static void main(String[] args) {
         new Pos().start(args);
     }
@@ -68,7 +71,7 @@ public class Pos {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
-            spi.setPosInfo("assembly", "2.6.1");
+            spi.setPosInfo("assembly", "2.6.3");
             options = new TransactionOptions();
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
@@ -270,8 +273,8 @@ public class Pos {
     private void payAtTableBillPaymentFlowEnded(Message message) {
         BillPaymentFlowEndedResponse billPaymentFlowEndedResponse = new BillPaymentFlowEndedResponse(message);
 
-        if (!billsStore.containsKey(billPaymentFlowEndedResponse.getBillId())) {
-            System.out.println("# Incorrect Bill Id!");
+        if (!billsStore.containsKey(billPaymentFlowEndedResponse.getTableId())) {
+            //Incorrect Table Id
             return;
         }
 
@@ -316,7 +319,7 @@ public class Pos {
         }
 
         if (!isOpenTables) {
-            System.out.println("# No Open Tables.");
+            // No Open Tables.
         }
 
         GetOpenTablesResponse response = new GetOpenTablesResponse();
@@ -913,6 +916,11 @@ public class Pos {
     //region My Pos Functions
 
     private void openTable(String tableId, String operatorId, String label, boolean locked) {
+        if (!REGEX_ITEMS_FOR_TABLEID.matcher(tableId).matches()) {
+            System.out.println("The Table Id cannot include special characters");
+            return;
+        }
+
         if (tableToBillMapping.containsKey(tableId)) {
             System.out.println("Table already open: " + billsStore.get(tableToBillMapping.get(tableId)));
             return;
