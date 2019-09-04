@@ -72,12 +72,20 @@ public class FormMain implements WindowListener {
                 if (!areControlsValid(false))
                     return;
 
+                if (!isAppStarted & autoCheckBox.isSelected()) {
+                    serialNumber = "";
+                    eftposAddress = "";
+                    posId = "";
+                    isAppStarted = true;
+                    Start();
+                }
+
                 spi.setTestMode(testModeCheckBox.isSelected());
                 spi.setAutoAddressResolution(autoAddressEnabled);
                 spi.setSerialNumber(txtSerialNumber.getText());
             } catch (Exception ex) {
                 LOG.error("Failed while setting values", ex.getMessage());
-                showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
+                showMessageDialog(null, "Failed while setting values " + ex.getMessage(), "Error", ERROR_MESSAGE);
             }
         });
         autoCheckBox.addActionListener(e -> {
@@ -85,7 +93,6 @@ public class FormMain implements WindowListener {
             btnSave.setEnabled(autoCheckBox.isSelected());
             testModeCheckBox.setSelected(autoCheckBox.isSelected());
             testModeCheckBox.setEnabled(autoCheckBox.isSelected());
-            txtDeviceAddress.setEnabled(!autoCheckBox.isSelected());
             txtSerialNumber.setEnabled(true);
         });
         btnTransactions.addActionListener(e -> {
@@ -121,20 +128,25 @@ public class FormMain implements WindowListener {
                     isAppStarted = false;
                     isStartButtonClicked = true;
 
-                    spi.setTestMode(testModeCheckBox.isSelected());
-                    spi.setAutoAddressResolution(autoAddressEnabled);
-                    spi.setSerialNumber(txtSerialNumber.getText());
+                    if (autoCheckBox.isSelected()) {
+                        spi.setTestMode(testModeCheckBox.isSelected());
+                        spi.setAutoAddressResolution(autoAddressEnabled);
+                        spi.setSerialNumber(txtSerialNumber.getText());
+                    }
 
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
+                    if (!autoCheckBox.isSelected()) {
+                        Start();
+                    }
                     break;
                 case ComponentLabels.PAIR:
                     if (!areControlsValid(true))
                         return;
 
                     try {
+                        spi.setAutoAddressResolution(autoAddressEnabled);
                         spi.setPosId(posId);
                         spi.setEftposAddress(eftposAddress);
-                        mainFrame.setEnabled(false);
                         mainFrame.pack();
 
                         spi.pair();
@@ -148,16 +160,16 @@ public class FormMain implements WindowListener {
                     formMain.txtSecrets.setText("");
                     formMain.autoCheckBox.setEnabled(true);
                     formMain.testModeCheckBox.setEnabled(true);
-                    formMain.btnSave.setEnabled(true);
+                    formMain.btnSave.setEnabled(formMain.autoCheckBox.isSelected());
                     formMain.txtPosId.setEnabled(true);
                     formMain.txtPosId.setText("");
-                    formMain.txtSerialNumber.setEnabled(true);
+                    formMain.txtSerialNumber.setEnabled(formMain.autoCheckBox.isSelected());
                     formMain.txtSerialNumber.setText("");
-                    formMain.txtDeviceAddress.setEnabled(false);
                     formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
+                    isAppStarted = false;
+                    isStartButtonClicked = false;
                     spi.unpair();
-                    spi.setSerialNumber("");
                     break;
                 default:
                     break;
@@ -248,7 +260,7 @@ public class FormMain implements WindowListener {
             return false;
         }
 
-        if (autoCheckBox.isSelected() && (serialNumber == null || StringUtils.isWhitespace(serialNumber))) {
+        if (!isPairing && autoCheckBox.isSelected() && (serialNumber == null || StringUtils.isWhitespace(serialNumber))) {
             showMessageDialog(null, "Please provide a Serial Number", "Error", ERROR_MESSAGE);
             return false;
         }
@@ -304,7 +316,7 @@ public class FormMain implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        spi.setPosInfo("assembly", "2.6.1");
+        spi.setPosInfo("assembly", "2.6.3");
         options = new TransactionOptions();
 
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
@@ -384,13 +396,9 @@ public class FormMain implements WindowListener {
     private void onPairingFlowStateChanged(PairingFlowState pairingFlowState) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().
+                formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim());
 
-                        trim());
-
-                if (!pairingFlowState.getConfirmationCode().
-
-                        equals("")) {
+                if (!pairingFlowState.getConfirmationCode().equals("")) {
                     formAction.lblFlowMessage.setText(formMain.multilineHtml + pairingFlowState.getMessage().trim() + " " + "# Confirmation Code: " + pairingFlowState.getConfirmationCode().trim());
                 }
 
@@ -1113,7 +1121,6 @@ public class FormMain implements WindowListener {
         if (new File("Secrets.bin").exists()) {
             secretsFile = formMain.readFromBinaryFile("Secrets.bin");
             formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
-            formMain.txtDeviceAddress.setEnabled(true);
             formMain.txtPosId.setText(secretsFile.get("PosId"));
             formMain.txtPosId.setEnabled(true);
             formMain.txtSerialNumber.setText(secretsFile.get("SerialNumber"));
@@ -1131,7 +1138,6 @@ public class FormMain implements WindowListener {
             formMain.btnAction.setText(ComponentLabels.START);
         } else {
             btnAction.setText(ComponentLabels.PAIR);
-            txtDeviceAddress.setEnabled(false);
         }
         isAppStarted = true;
         Start();

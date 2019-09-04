@@ -1,6 +1,7 @@
 package com.assamblypayments.ramenpos;
 
 import com.assemblypayments.spi.model.InitiateTxResult;
+import com.assemblypayments.spi.model.SpiStatus;
 import com.assemblypayments.spi.model.TransactionType;
 
 import javax.swing.*;
@@ -54,6 +55,12 @@ public class FormAction implements WindowListener {
                     mainFrame.setEnabled(true);
                     transactionsFrame.setEnabled(true);
                     actionDialog.setVisible(false);
+                    if (formMain.spi.getCurrentStatus() == SpiStatus.PAIRED_CONNECTING) {
+                        formMain.btnSave.setEnabled(formMain.autoCheckBox.isSelected());
+                        formMain.autoCheckBox.setEnabled(true);
+                        formMain.testModeCheckBox.setEnabled(true);
+                        mainFrame.pack();
+                    }
                     break;
                 case ComponentLabels.OK_UNPAIRED:
                     formMain.spi.ackFlowEndedAndBackToIdle();
@@ -173,6 +180,8 @@ public class FormAction implements WindowListener {
     @Override
     public void windowActivated(WindowEvent e) {
         lblFlowStatus.setText(formMain.spi.getCurrentFlow().toString());
+        mainFrame.setEnabled(false);
+        mainFrame.pack();
     }
 
     @Override

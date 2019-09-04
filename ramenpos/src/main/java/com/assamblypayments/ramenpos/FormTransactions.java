@@ -312,7 +312,6 @@ public class FormTransactions implements WindowListener {
                 formMain.btnSave.setEnabled(false);
                 formMain.txtPosId.setEnabled(false);
                 formMain.txtSerialNumber.setEnabled(false);
-                formMain.txtDeviceAddress.setEnabled(false);
                 formMain.txtSecrets.setEnabled(false);
             }
 
