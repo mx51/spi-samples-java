@@ -1,10 +1,10 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '1.2.4'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
-mainClassName = 'com.assemblypayments.tablepos.Pos'
+mainClassName = 'io.mx51.tablepos.Pos'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 
@@ -16,7 +16,7 @@ run {
 }
 
 dependencies {
-    compile 'com.assemblypayments:spi-client-java:2.6.3'
-    compile 'org.apache.logging.log4j:log4j-slf4j-impl:2.10.0'
-    compile project(':utils')
+    implementation 'io.mx51:spi-client-java:2.6.6'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.10.0'
+    implementation project(':utils')
 }

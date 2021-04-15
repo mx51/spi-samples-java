@@ -1,7 +1,7 @@
 package com.assamblypayments.ramenpos;
 
-import com.assemblypayments.spi.Spi;
-import com.assemblypayments.spi.model.*;
+import io.mx51.spi.Spi;
+import io.mx51.spi.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
-import static com.assemblypayments.spi.Spi.getVersion;
+import static io.mx51.spi.Spi.getVersion;
 import static javax.swing.JOptionPane.*;
 
 public class FormMain implements WindowListener {

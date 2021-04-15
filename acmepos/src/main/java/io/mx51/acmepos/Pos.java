@@ -1,9 +1,9 @@
-package com.assemblypayments.acmepos;
+package io.mx51.acmepos;
 
-import com.assemblypayments.spi.Spi;
-import com.assemblypayments.spi.model.*;
-import com.assemblypayments.spi.util.RequestIdHelper;
-import com.assemblypayments.utils.SystemHelper;
+import io.mx51.spi.Spi;
+import io.mx51.spi.model.*;
+import io.mx51.spi.util.RequestIdHelper;
+import io.mx51.utils.SystemHelper;
 
 import java.util.Date;
 import java.util.Scanner;
@@ -36,7 +36,7 @@ public class Pos {
         //region SPI setup
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
-            spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi = new Spi(posId, "TODO: serialNumber", eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());

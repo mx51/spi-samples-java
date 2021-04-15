@@ -1,9 +1,9 @@
-package com.assemblypayments.kebabpos;
+package io.mx51.kebabpos;
 
-import com.assemblypayments.spi.Spi;
-import com.assemblypayments.spi.model.*;
-import com.assemblypayments.spi.util.RequestIdHelper;
-import com.assemblypayments.utils.SystemHelper;
+import io.mx51.spi.Spi;
+import io.mx51.spi.model.*;
+import io.mx51.spi.util.RequestIdHelper;
+import io.mx51.utils.SystemHelper;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.logging.log4j.LogManager;
@@ -13,8 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Scanner;
 
-import static com.assemblypayments.spi.model.SpiFlow.TRANSACTION;
-import static com.assemblypayments.spi.model.TransactionType.PURCHASE;
+import static io.mx51.spi.model.SpiFlow.TRANSACTION;
+import static io.mx51.spi.model.TransactionType.PURCHASE;
 
 /**
  * NOTE: THIS PROJECT USES THE 2.1.x of the SPI Client Library
@@ -48,7 +48,7 @@ public class Pos {
 
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
-            spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi = new Spi(posId, "TODO: serialNumber", eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());

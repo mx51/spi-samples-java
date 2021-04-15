@@ -1,8 +1,8 @@
 package com.assamblypayments.ramenpos;
 
-import com.assemblypayments.spi.model.InitiateTxResult;
-import com.assemblypayments.spi.model.SpiStatus;
-import com.assemblypayments.spi.model.TransactionType;
+import io.mx51.spi.model.InitiateTxResult;
+import io.mx51.spi.model.SpiStatus;
+import io.mx51.spi.model.TransactionType;
 
 import javax.swing.*;
 import java.awt.event.WindowEvent;
