@@ -36,7 +36,7 @@ public class Pos {
         //region SPI setup
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
-            spi = new Spi(posId, eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
+            spi = new Spi(posId, "TODO: serialNumber", eftposAddress, spiSecrets); // It is ok to not have the secrets yet to start with.
         } catch (Spi.CompatibilityException e) {
             System.out.println("# ");
             System.out.println("# Compatibility check failed: " + e.getCause().getMessage());
