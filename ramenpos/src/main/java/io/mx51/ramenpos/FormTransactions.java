@@ -1,7 +1,7 @@
 package com.assamblypayments.ramenpos;
 
-import com.assemblypayments.spi.model.InitiateTxResult;
-import com.assemblypayments.spi.util.RequestIdHelper;
+import io.mx51.spi.model.InitiateTxResult;
+import io.mx51.spi.util.RequestIdHelper;
 
 import javax.swing.*;
 import java.awt.event.*;

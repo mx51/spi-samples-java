@@ -1,10 +1,10 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '1.2.4'
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
-mainClassName = 'com.assemblypayments.acmepos.Pos'
+mainClassName = 'io.mx51.acmepos.Pos'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 
@@ -16,6 +16,6 @@ run {
 }
 
 dependencies {
-    compile 'com.assemblypayments:spi-client-java:2.0.2'
-    compile project(':utils')
+    implementation 'io.mx51:spi-client-java:2.6.6'
+    implementation project(':utils')
 }

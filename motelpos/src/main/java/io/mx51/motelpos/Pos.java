@@ -1,10 +1,10 @@
-package com.assemblypayments.motelpos;
+package io.mx51.motelpos;
 
-import com.assemblypayments.spi.Spi;
-import com.assemblypayments.spi.SpiPreauth;
-import com.assemblypayments.spi.model.*;
-import com.assemblypayments.spi.util.RequestIdHelper;
-import com.assemblypayments.utils.SystemHelper;
+import io.mx51.spi.Spi;
+import io.mx51.spi.SpiPreauth;
+import io.mx51.spi.model.*;
+import io.mx51.spi.util.RequestIdHelper;
+import io.mx51.utils.SystemHelper;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

@@ -1,4 +1,4 @@
-package com.assemblypayments.utils;
+package io.mx51.utils;
 
 /**
  * Helper methods for language and platform-specific operations.
