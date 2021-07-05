@@ -1,4 +1,4 @@
-package com.assamblypayments.ramenpos;
+package io.mx51.ramenpos;
 
 public class ComponentLabels {
     static final String PAIR = "Pair";

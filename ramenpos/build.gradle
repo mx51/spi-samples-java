@@ -4,12 +4,13 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '6.1.0'
 }
 
-mainClassName = 'io.mx51.ramenpos.Main'
+mainClassName = 'io.mx51.ramenpos.FormMain'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
     implementation 'io.mx51:spi-client-java:2.6.6'
     implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.10.0'
+    implementation 'com.intellij:forms_rt:7.0.3'
     implementation project(':utils')
 }
