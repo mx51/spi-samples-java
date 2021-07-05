@@ -217,6 +217,14 @@
               <text value="Recovery"/>
             </properties>
           </component>
+          <component id="6bd2a" class="javax.swing.JButton" binding="btnReversal">
+            <constraints>
+              <grid row="3" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Reversal"/>
+            </properties>
+          </component>
         </children>
       </grid>
       <grid id="ea397" binding="pnlSettings" layout-manager="GridLayoutManager" row-count="4" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
