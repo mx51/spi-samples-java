@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module external.linked.project.id=":tablepos:test" external.linked.project.path="$MODULE_DIR$/../../../tablepos" external.root.project.path="$MODULE_DIR$/../../.." external.system.id="GRADLE" external.system.module.group="spi-samples-java" external.system.module.type="sourceSet" external.system.module.version="unspecified" type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <output-test url="file://$MODULE_DIR$/../../../tablepos/out/test/classes" />
+    <output-test url="file://$MODULE_DIR$/../../../tablepos/build/classes/java/test" />
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../tablepos/src/test" />
     <orderEntry type="inheritedJdk" />
