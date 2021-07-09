@@ -782,7 +782,6 @@ public class FormMain extends JFrame implements WindowListener {
 
                 if (txState.isFinished()) {
                     formAction.txtAreaFlow.setText("");
-                    System.out.println(txState.getType());
                     switch (txState.getType()) {
                         case PURCHASE:
                             handleFinishedPurchase(txState);
