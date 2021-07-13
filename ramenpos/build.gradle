@@ -9,7 +9,7 @@ mainClassName = 'io.mx51.ramenpos.FormMain'
 sourceCompatibility = JavaVersion.VERSION_1_8
 
 dependencies {
-    implementation 'io.mx51:spi-client-java:2.8.0'
+    implementation 'io.mx51:spi-client-java:0.0.1-SNAPSHOT'
 //    implementation 'commons-lang:commons-lang:2.6'
 //    implementation 'commons-codec:commons-codec:1.11'
 //    implementation 'com.google.code.gson:gson:2.8.2'
