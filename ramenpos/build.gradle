@@ -17,7 +17,7 @@ repositories {
         credentials {
             // The credentials (described in the next section)
             username = "AliAkiltayev"
-            password = "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"
+            password = "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"
         }
     }
 }
