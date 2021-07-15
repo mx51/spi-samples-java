@@ -718,12 +718,12 @@ public class Pos {
                     break;
 
                 case "eftpos_address":
-                    if (spInput.length != 2) {
+                    if (spInput.length < 2 || spInput.length > 3) {
                         System.out.print("Missing Parameters!");
                     } else {
                         SystemHelper.clearConsole();
-                        if (spi.setEftposAddress(spInput[1])) {
-                            eftposAddress = spInput[1];
+                        eftposAddress = spInput[1] + ":" + spInput[2];
+                        if (spi.setEftposAddress(eftposAddress)) {
                             System.out.println("## -> EFTPOS address now set to " + eftposAddress);
                         } else {
                             System.out.println("## -> Could not set EFTPOS address");
