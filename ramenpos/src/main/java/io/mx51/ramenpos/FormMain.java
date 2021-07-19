@@ -541,8 +541,8 @@ public class FormMain extends JFrame implements WindowListener {
 
                     case PAIRING:
                         if (spi.getCurrentPairingFlowState().isAwaitingCheckFromPos()) {
-                            formAction.btnAction1.setEnabled(true);
-                            formAction.btnAction1.setVisible(true);
+                            formAction.btnAction1.setEnabled(false);
+                            formAction.btnAction1.setVisible(false);
                             formAction.btnAction1.setText(ComponentLabels.CONFIRM_CODE);
                             formAction.btnAction2.setVisible(true);
                             formAction.btnAction2.setText(ComponentLabels.CANCEL_PAIRING);
