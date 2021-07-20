@@ -763,7 +763,7 @@ public class FormMain extends JFrame implements WindowListener {
                 formAction.txtAreaFlow.append("# Finished: " + txState.isFinished() + "\n");
                 formAction.txtAreaFlow.append("# Success: " + txState.getSuccess() + "\n");
                 formAction.txtAreaFlow.append("# GLT Response PosRefId: " + txState.getGltResponsePosRefId() + "\n");
-                formAction.txtAreaFlow.append("# Last GLT Response Request Id: " + txState.getLastGltRequestId() + "\n");
+                formAction.txtAreaFlow.append("# Last GLT Response Request Id: " + txState.getGtRequestId() + "\n");
 
                 if (txState.isAwaitingSignatureCheck()) {
                     // We need to print the receipt for the customer to sign.
@@ -800,6 +800,9 @@ public class FormMain extends JFrame implements WindowListener {
                             break;
                         case GET_LAST_TRANSACTION:
                             handleFinishedGetLastTransaction(txState);
+                            break;
+                        case GET_TRANSACTION:
+                            handleFinishedGetTransaction(txState);
                             break;
 
                         default:
@@ -988,15 +991,6 @@ public class FormMain extends JFrame implements WindowListener {
         if (txState.getResponse() != null) {
             GetLastTransactionResponse gltResponse = new GetLastTransactionResponse(txState.getResponse());
 
-            // User specified that he intended to retrieve a specific tx by pos_ref_id
-            // This is how you can use a handy function to match it.
-            Message.SuccessState success = spi.gltMatch(gltResponse, formAction.txtAction1.getText().trim());
-            if (success == Message.SuccessState.UNKNOWN) {
-                formAction.txtAreaFlow.append("# Did not retrieve expected transaction. Here is what we got:" + "\n");
-            } else {
-                formAction.txtAreaFlow.append("# Tx matched expected purchase request." + "\n");
-            }
-
             PurchaseResponse purchaseResponse = new PurchaseResponse(txState.getResponse());
             formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
             formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
@@ -1007,6 +1001,27 @@ public class FormMain extends JFrame implements WindowListener {
         } else {
             // We did not even get a response, like in the case of a time-out.
             formAction.txtAreaFlow.append("# Could not retrieve last transaction." + "\n");
+        }
+    }
+
+    private void handleFinishedGetTransaction(TransactionFlowState txState) {
+        if (txState.getResponse() != null) {
+            GetTransactionResponse gtResponse = new GetTransactionResponse(txState.getResponse());
+
+            formAction.txtAreaFlow.append("# Got Successful Get Transaction Response!!! :)" + "\n");
+            formAction.txtAreaFlow.append("# Response Message: " + gtResponse.getTxMessage() + "\n");
+            formAction.txtAreaFlow.append("# PosRefID: " + gtResponse.getPosRefId() + "\n");
+
+            PurchaseResponse purchaseResponse = new PurchaseResponse(txState.getResponse());
+            formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
+            formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
+            formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
+            formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
+            formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
+            formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
+        } else {
+            // We did not even get a response, like in the case of a time-out.
+            formAction.txtAreaFlow.append("# Could not retrieve get transaction." + "\n");
         }
     }
 

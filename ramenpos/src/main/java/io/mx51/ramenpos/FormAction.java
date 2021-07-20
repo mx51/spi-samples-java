@@ -126,6 +126,9 @@ public class FormAction implements WindowListener {
                 case ComponentLabels.LAST_TX:
                     doLastTx();
                     break;
+                case ComponentLabels.GET_TX:
+                    doGetTx();
+                    break;
             }
         });
 
@@ -267,6 +270,20 @@ public class FormAction implements WindowListener {
             txtAreaFlow.setText("# Last Transaction Initiated. Will be updated with Progress." + "\n");
         } else {
             txtAreaFlow.setText("# Could not initiate last transaction: " + coRes.getMessage() + ". Please Retry." + "\n");
+        }
+    }
+
+    private void doGetTx() {
+        if (txtAction1.getText().equals("")) {
+            JOptionPane.showMessageDialog(null, "Please enter reference!", "Get Transaction", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        InitiateTxResult revRes = formMain.spi.initiateGetTx(txtAction1.getText().trim());
+
+        if (revRes.isInitiated()) {
+            txtAreaFlow.setText("# Get Transaction Initiated. Will be updated with Progress." + "\n");
+        } else {
+            txtAreaFlow.setText("# Could not initiate get transaction: " + revRes.getMessage() + ". Please Retry." + "\n");
         }
     }
 
