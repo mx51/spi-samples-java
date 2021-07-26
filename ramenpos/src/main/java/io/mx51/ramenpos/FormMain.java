@@ -48,7 +48,7 @@ public class FormMain extends JFrame implements WindowListener {
 
     private static final Logger LOG = LogManager.getLogger("spi");
     private static final String apiKey = "RamenPosDeviceAddressApiKey"; // this key needs to be requested from Assembly Payments
-    private static final String acquirerCode = "wbc";
+    private static final String acquirerCode = "gko";
 
     Spi spi;
     String posId = "";
@@ -134,9 +134,14 @@ public class FormMain extends JFrame implements WindowListener {
                     isStartButtonClicked = true;
 
                     if (autoCheckBox.isSelected()) {
-                        spi.setTestMode(testModeCheckBox.isSelected());
-                        spi.setAutoAddressResolution(autoAddressEnabled);
-                        spi.setSerialNumber(txtSerialNumber.getText());
+                        try {
+                            spi.setTestMode(testModeCheckBox.isSelected());
+                            spi.setAutoAddressResolution(autoAddressEnabled);
+                            spi.setSerialNumber(txtSerialNumber.getText());
+                        } catch (IOException er) {
+                            er.printStackTrace();
+                        }
+
                     }
 
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
