@@ -1,5 +1,8 @@
 package io.mx51.ramenpos;
 
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.uiDesigner.core.Spacer;
 import io.mx51.spi.Spi;
 import io.mx51.spi.model.*;
 import org.apache.commons.lang.StringUtils;
@@ -801,6 +804,9 @@ public class FormMain extends JFrame implements WindowListener {
                         case GET_LAST_TRANSACTION:
                             handleFinishedGetLastTransaction(txState);
                             break;
+                        case REVERSAL:
+                            handleFinishedReversal(txState);
+                            break;
 
                         default:
                             formAction.txtAreaFlow.append("# CAN'T HANDLE TX TYPE: " + txState.getType() + "\n");
@@ -1007,6 +1013,19 @@ public class FormMain extends JFrame implements WindowListener {
         } else {
             // We did not even get a response, like in the case of a time-out.
             formAction.txtAreaFlow.append("# Could not retrieve last transaction." + "\n");
+        }
+    }
+
+    private void handleFinishedReversal(TransactionFlowState txState) {
+        System.out.println(txState.getSuccess());
+        if (txState.getResponse() != null) {
+            ReversalResponse revResponse = new ReversalResponse(txState.getResponse());
+            if(revResponse.getSuccess()==true) {
+                formAction.txtAreaFlow.append("# WOOHOO! - Reverse transaction with posRefId " + revResponse.getPosRefId() + " is successful"+ "\n");
+            } else {
+                formAction.txtAreaFlow.append("# " + revResponse.getErrorReason()+ "\n");
+                formAction.txtAreaFlow.append("# " + revResponse.getErrorDetail()+ "\n");
+            }
         }
     }
 
@@ -1317,4 +1336,5 @@ public class FormMain extends JFrame implements WindowListener {
     public JComponent $$$getRootComponent$$$() {
         return pnlMain;
     }
+
 }

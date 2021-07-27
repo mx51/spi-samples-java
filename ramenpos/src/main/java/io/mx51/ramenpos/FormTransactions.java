@@ -1,5 +1,8 @@
 package io.mx51.ramenpos;
 
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.uiDesigner.core.Spacer;
 import io.mx51.spi.model.InitiateTxResult;
 import io.mx51.spi.util.RequestIdHelper;
 
@@ -35,6 +38,7 @@ public class FormTransactions implements WindowListener {
     public JLabel lblTransActions;
     public JLabel lblOtherActions;
     public JButton btnRecovery;
+    public JButton btnReversal;
     public JButton btnLastTrans;
     public JLabel lblReceipt;
     public JButton btnTerminalStatus;
@@ -232,6 +236,30 @@ public class FormTransactions implements WindowListener {
             formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(ComponentLabels.RECOVERY);
+            formAction.btnAction2.setVisible(true);
+            formAction.btnAction2.setText(ComponentLabels.CANCEL);
+            formAction.btnAction3.setVisible(false);
+            formAction.lblAction1.setVisible(true);
+            formAction.lblAction1.setText(ComponentLabels.REFERENCE);
+            formAction.txtAction1.setVisible(true);
+            formAction.txtAction1.setText("");
+            formAction.lblAction2.setVisible(false);
+            formAction.txtAction2.setVisible(false);
+            formAction.lblAction3.setVisible(false);
+            formAction.txtAction3.setVisible(false);
+            formAction.lblAction4.setVisible(false);
+            formAction.txtAction4.setVisible(false);
+            formAction.cboxAction1.setVisible(false);
+            transactionsFrame.setEnabled(false);
+            actionDialog.setVisible(true);
+            actionDialog.pack();
+            transactionsFrame.pack();
+        });
+        btnReversal.addActionListener(e -> {
+            formAction.lblFlowMessage.setText("Please enter the reference you would like to reverse");
+            formAction.btnAction1.setEnabled(true);
+            formAction.btnAction1.setVisible(true);
+            formAction.btnAction1.setText(ComponentLabels.REVERSAL);
             formAction.btnAction2.setVisible(true);
             formAction.btnAction2.setText(ComponentLabels.CANCEL);
             formAction.btnAction3.setVisible(false);
@@ -469,6 +497,9 @@ public class FormTransactions implements WindowListener {
         btnRecovery = new JButton();
         btnRecovery.setText("Recovery");
         pnlTransactionalActions.add(btnRecovery, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnReversal = new JButton();
+        btnReversal.setText("Reversal");
+        pnlTransactionalActions.add(btnReversal, new com.intellij.uiDesigner.core.GridConstraints(3, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlSettings = new JPanel();
         pnlSettings.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(4, 1, new Insets(3, 3, 3, 3), -1, -1));
         pnlMain.add(pnlSettings, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -531,4 +562,5 @@ public class FormTransactions implements WindowListener {
     public JComponent $$$getRootComponent$$$() {
         return pnlMain;
     }
+
 }

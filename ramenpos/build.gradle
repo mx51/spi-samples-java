@@ -8,14 +8,27 @@ mainClassName = 'io.mx51.ramenpos.FormMain'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 
+repositories {
+    maven {
+        // Choose whatever name you like
+        name = "GitHubPackages"
+        // The url of the repository that contains the published artifacts
+        url = "https://maven.pkg.github.com/mx51/spi-client-java"
+        credentials {
+            // The credentials (described in the next section)
+            username = "AliAkiltayev"
+            password = "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"
+        }
+    }
+}
+
 dependencies {
-    implementation 'io.mx51:spi-client-java:2.8.0'
-//    implementation 'commons-lang:commons-lang:2.6'
-//    implementation 'commons-codec:commons-codec:1.11'
-//    implementation 'com.google.code.gson:gson:2.8.2'
-//    implementation 'com.squareup.okhttp3:okhttp:3.12.3'
+    implementation 'io.mx51:client:0.0.1-SNAPSHOT'
     implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.10.0'
     implementation 'com.intellij:forms_rt:7.0.3'
     implementation project(':utils')
-//    implementation files('C:\\Users\\Ali_Akiltayev\\Desktop\\MX51\\spi-client-java\\client\\build\\libs\\spi-client-java-0.0.1-SNAPSHOT.jar')
+    implementation 'commons-lang:commons-lang:2.6'
+    implementation 'commons-codec:commons-codec:1.11'
+    implementation 'com.google.code.gson:gson:2.8.2'
+    implementation 'com.squareup.okhttp3:okhttp:3.12.3'
 }

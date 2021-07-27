@@ -1,5 +1,7 @@
 package io.mx51.ramenpos;
 
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
 import io.mx51.spi.model.InitiateTxResult;
 import io.mx51.spi.model.SpiStatus;
 import io.mx51.spi.model.TransactionType;
@@ -117,6 +119,9 @@ public class FormAction implements WindowListener {
                 case ComponentLabels.RECOVERY:
                     doRecovery();
                     break;
+                case ComponentLabels.REVERSAL:
+                    doReversal();
+                    break;
                 case ComponentLabels.SET:
                     doHeaderFooter();
                     break;
@@ -204,6 +209,7 @@ public class FormAction implements WindowListener {
 
         if (purchase.isInitiated()) {
             txtAreaFlow.setText("# Purchase Initiated. Will be updated with Progress." + "\n");
+            txtAreaFlow.setText("-------------------" + purchase.getMessage());
         } else {
             txtAreaFlow.setText("# Could not initiate purchase: " + purchase.getMessage() + ". Please Retry." + "\n");
         }
@@ -257,6 +263,22 @@ public class FormAction implements WindowListener {
             txtAreaFlow.setText("# Recovery Initiated. Will be updated with Progress." + "\n");
         } else {
             txtAreaFlow.setText("# Could not initiate recovery: " + recRes.getMessage() + ". Please Retry." + "\n");
+        }
+    }
+
+    private void doReversal() {
+
+        if (txtAction1.getText().equals("")) {
+            JOptionPane.showMessageDialog(null, "Please enter reference!", "Reversal", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        InitiateTxResult revRes = formMain.spi.initiateReversal(txtAction1.getText().trim());
+
+        if (revRes.isInitiated()) {
+            txtAreaFlow.setText("# Reversal Initiated. Will be updated with Progress." + "\n");
+        } else {
+            txtAreaFlow.setText("# Could not initiate reversal: " + revRes.getMessage() + ". Please Retry." + "\n");
         }
     }
 
@@ -396,4 +418,5 @@ public class FormAction implements WindowListener {
     public JComponent $$$getRootComponent$$$() {
         return pnlMain;
     }
+
 }

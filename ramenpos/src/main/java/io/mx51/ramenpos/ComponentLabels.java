@@ -16,6 +16,7 @@ public class ComponentLabels {
     static final String CASH_OUT = "Cash Out";
     static final String MOTO = "MOTO";
     static final String RECOVERY = "Recovery";
+    static final String REVERSAL = "Reversal";
     static final String SET = "Set";
     static final String PRINT = "Print";
     static final String START = "Start";
