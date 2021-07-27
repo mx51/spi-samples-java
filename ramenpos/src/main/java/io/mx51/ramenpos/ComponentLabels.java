@@ -20,6 +20,7 @@ public class ComponentLabels {
     static final String PRINT = "Print";
     static final String START = "Start";
     static final String LAST_TX = "Get Last Tx";
+    static final String GET_TX = "Get Tx";
 
     static final String AMOUNT = "Amounts (Cents)";
     static final String TIP_AMOUNT = "Tip Amount (Cents)";

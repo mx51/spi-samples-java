@@ -36,6 +36,7 @@ public class FormTransactions implements WindowListener {
     public JLabel lblOtherActions;
     public JButton btnRecovery;
     public JButton btnLastTrans;
+    public JButton btnGetTrans;
     public JLabel lblReceipt;
     public JButton btnTerminalStatus;
     public JCheckBox cboxPrintMerchantCopy;
@@ -208,6 +209,29 @@ public class FormTransactions implements WindowListener {
             formAction.btnAction1.setEnabled(true);
             formAction.btnAction1.setVisible(true);
             formAction.btnAction1.setText(ComponentLabels.LAST_TX);
+            formAction.btnAction2.setVisible(true);
+            formAction.btnAction2.setText(ComponentLabels.CANCEL);
+            formAction.btnAction3.setVisible(false);
+            formAction.lblAction1.setVisible(true);
+            formAction.lblAction1.setText(ComponentLabels.REFERENCE);
+            formAction.txtAction1.setVisible(true);
+            formAction.txtAction1.setText("");
+            formAction.lblAction2.setVisible(false);
+            formAction.txtAction2.setVisible(false);
+            formAction.lblAction3.setVisible(false);
+            formAction.txtAction3.setVisible(false);
+            formAction.lblAction4.setVisible(false);
+            formAction.txtAction4.setVisible(false);
+            formAction.cboxAction1.setVisible(false);
+            transactionsFrame.setEnabled(false);
+            actionDialog.setVisible(true);
+            actionDialog.pack();
+            transactionsFrame.pack();
+        });
+        btnGetTrans.addActionListener(e -> {
+            formAction.btnAction1.setEnabled(true);
+            formAction.btnAction1.setVisible(true);
+            formAction.btnAction1.setText(ComponentLabels.GET_TX);
             formAction.btnAction2.setVisible(true);
             formAction.btnAction2.setText(ComponentLabels.CANCEL);
             formAction.btnAction3.setVisible(false);
@@ -435,7 +459,7 @@ public class FormTransactions implements WindowListener {
         btnHeaderFooter.setText("Header / Footer");
         pnlOtherTransactions.add(btnHeaderFooter, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlTransactionalActions = new JPanel();
-        pnlTransactionalActions.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(4, 3, new Insets(3, 3, 3, 3), -1, -1));
+        pnlTransactionalActions.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(5, 3, new Insets(3, 3, 3, 3), -1, -1));
         pnlMain.add(pnlTransactionalActions, new com.intellij.uiDesigner.core.GridConstraints(3, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         pnlTransactionalActions.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.black), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, new Color(-4473925)));
         lblTransActions = new JLabel();
@@ -466,6 +490,9 @@ public class FormTransactions implements WindowListener {
         btnLastTrans = new JButton();
         btnLastTrans.setText("Last Trans");
         pnlTransactionalActions.add(btnLastTrans, new com.intellij.uiDesigner.core.GridConstraints(3, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnGetTrans = new JButton();
+        btnGetTrans.setText("Get Trans");
+        pnlTransactionalActions.add(btnGetTrans, new com.intellij.uiDesigner.core.GridConstraints(4, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnRecovery = new JButton();
         btnRecovery.setText("Recovery");
         pnlTransactionalActions.add(btnRecovery, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
