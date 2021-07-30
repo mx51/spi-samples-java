@@ -334,6 +334,7 @@ public class FormMain extends JFrame implements WindowListener {
         spi.setTerminalStatusResponseDelegate(this::handleTerminalStatusResponse);
         spi.setTerminalConfigurationResponseDelegate(this::handleTerminalConfigurationResponse);
         spi.setBatteryLevelChangedDelegate(this::handleBatteryLevelChanged);
+        spi.setTransactionUpdateMessageDelegate(this::handleTransactionUpdateMessage);
 
         spi.setAcquirerCode(acquirerCode);
         spi.setDeviceApiKey(apiKey);
@@ -495,6 +496,22 @@ public class FormMain extends JFrame implements WindowListener {
             formAction.txtAreaFlow.setText("");
             formAction.txtAreaFlow.append("# Battery Level Changed #" + "\n");
             formAction.txtAreaFlow.append("# Battery Level: " + terminalBattery.batteryLevel.replace("d", "") + "%" + "\n");
+
+            spi.ackFlowEndedAndBackToIdle();
+            transactionsFrame.setEnabled(false);
+            actionDialog.setVisible(true);
+            actionDialog.pack();
+            transactionsFrame.pack();
+        }
+    }
+
+    private void handleTransactionUpdateMessage(Message message) {
+        if (!actionDialog.isVisible()) {
+            formAction.lblFlowMessage.setText("# --> Transaction Update Message");
+            TransactionUpdate transactionUpdate = new TransactionUpdate(message);
+            formAction.txtAreaFlow.setText("");
+            formAction.txtAreaFlow.append("# Transaction Update Message #" + "\n");
+            formAction.txtAreaFlow.append("# Transaction Update code: " + transactionUpdate.displayMessageCode + "; text:"+transactionUpdate.getDisplayMessageText() + "\n");
 
             spi.ackFlowEndedAndBackToIdle();
             transactionsFrame.setEnabled(false);
