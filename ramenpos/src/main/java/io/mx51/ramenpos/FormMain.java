@@ -28,7 +28,7 @@ public class FormMain extends JFrame implements WindowListener {
     public JTextField txtSecrets;
     public JPanel pnlAutoAddress;
     public JCheckBox testModeCheckBox;
-    public JCheckBox autoCheckBox;
+    //    public JCheckBox autoCheckBox;
     public JButton btnSave;
     public JPanel pnlSecrets;
     public JCheckBox secretsCheckBox;
@@ -56,7 +56,8 @@ public class FormMain extends JFrame implements WindowListener {
     Secrets spiSecrets = null;
     TransactionOptions options;
     private String serialNumber = "";
-    private boolean autoAddressEnabled;
+    private boolean autoAddressEnabled = true;
+    private boolean testMode;
 
     private final String multilineHtml = "<html><body style='width: 250px'>";
 
@@ -77,7 +78,7 @@ public class FormMain extends JFrame implements WindowListener {
                 if (!areControlsValid(false))
                     return;
 
-                if (!isAppStarted & autoCheckBox.isSelected()) {
+                if (!isAppStarted & autoAddressEnabled) {
                     serialNumber = "";
                     eftposAddress = "";
                     posId = "";
@@ -86,20 +87,19 @@ public class FormMain extends JFrame implements WindowListener {
                 }
 
                 spi.setTestMode(testModeCheckBox.isSelected());
-                spi.setAutoAddressResolution(autoAddressEnabled);
                 spi.setSerialNumber(txtSerialNumber.getText());
             } catch (Exception ex) {
                 LOG.error("Failed while setting values", ex.getMessage());
                 showMessageDialog(null, "Failed while setting values " + ex.getMessage(), "Error", ERROR_MESSAGE);
             }
         });
-        autoCheckBox.addActionListener(e -> {
-            btnAction.setEnabled(true);
-            btnSave.setEnabled(autoCheckBox.isSelected());
-            testModeCheckBox.setSelected(autoCheckBox.isSelected());
-            testModeCheckBox.setEnabled(autoCheckBox.isSelected());
-            txtSerialNumber.setEnabled(true);
-        });
+//        autoCheckBox.addActionListener(e -> {
+//            btnAction.setEnabled(true);
+//            btnSave.setEnabled(autoCheckBox.isSelected());
+//            testModeCheckBox.setSelected(autoCheckBox.isSelected());
+//            testModeCheckBox.setEnabled(autoCheckBox.isSelected());
+//            txtSerialNumber.setEnabled(true);
+//        });
         btnTransactions.addActionListener(e -> {
             mainFrame.setEnabled(false);
             mainFrame.pack();
@@ -110,7 +110,7 @@ public class FormMain extends JFrame implements WindowListener {
         });
         secretsCheckBox.addActionListener(e -> {
             txtSecrets.setEnabled(secretsCheckBox.isSelected());
-            autoCheckBox.setEnabled(!secretsCheckBox.isSelected());
+//            autoCheckBox.setEnabled(!secretsCheckBox.isSelected());
             testModeCheckBox.setEnabled(!secretsCheckBox.isSelected());
             btnSave.setEnabled(!secretsCheckBox.isSelected());
             btnAction.setEnabled(true);
@@ -133,23 +133,21 @@ public class FormMain extends JFrame implements WindowListener {
                     isAppStarted = false;
                     isStartButtonClicked = true;
 
-                    if (autoCheckBox.isSelected()) {
-                        spi.setTestMode(testModeCheckBox.isSelected());
-                        spi.setAutoAddressResolution(autoAddressEnabled);
-                        spi.setSerialNumber(txtSerialNumber.getText());
-                    }
+//                    if (autoCheckBox.isSelected()) {
+//                        spi.setTestMode(testModeCheckBox.isSelected());
+//                    }
 
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
-                    if (!autoCheckBox.isSelected()) {
-                        Start();
-                    }
+//                    if (!autoCheckBox.isSelected()) {
+//                        Start();
+//                    }
                     break;
                 case ComponentLabels.PAIR:
                     if (!areControlsValid(true))
                         return;
 
                     try {
-                        spi.setAutoAddressResolution(autoAddressEnabled);
+                        spi.setAutoAddressResolution(false);
                         spi.setPosId(posId);
                         spi.setEftposAddress(eftposAddress);
                         mainFrame.pack();
@@ -163,12 +161,12 @@ public class FormMain extends JFrame implements WindowListener {
                 case ComponentLabels.UN_PAIR:
                     formMain.secretsCheckBox.setEnabled(false);
                     formMain.txtSecrets.setText("");
-                    formMain.autoCheckBox.setEnabled(true);
+//                    formMain.autoCheckBox.setEnabled(true);
                     formMain.testModeCheckBox.setEnabled(true);
-                    formMain.btnSave.setEnabled(formMain.autoCheckBox.isSelected());
+                    formMain.btnSave.setEnabled(true);
                     formMain.txtPosId.setEnabled(true);
                     formMain.txtPosId.setText("");
-                    formMain.txtSerialNumber.setEnabled(formMain.autoCheckBox.isSelected());
+                    formMain.txtSerialNumber.setEnabled(true);
                     formMain.txtSerialNumber.setText("");
                     formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
@@ -250,7 +248,7 @@ public class FormMain extends JFrame implements WindowListener {
 
     private boolean areControlsValid(boolean isPairing) {
 
-        autoAddressEnabled = autoCheckBox.isSelected();
+//        autoAddressEnabled = autoCheckBox.isSelected();
         posId = txtPosId.getText();
         eftposAddress = txtDeviceAddress.getText();
         serialNumber = txtSerialNumber.getText();
@@ -265,7 +263,7 @@ public class FormMain extends JFrame implements WindowListener {
             return false;
         }
 
-        if (!isPairing && autoCheckBox.isSelected() && (serialNumber == null || StringUtils.isWhitespace(serialNumber))) {
+        if (!isPairing && (serialNumber == null || StringUtils.isWhitespace(serialNumber))) {
             showMessageDialog(null, "Please provide a Serial Number", "Error", ERROR_MESSAGE);
             return false;
         }
@@ -307,7 +305,11 @@ public class FormMain extends JFrame implements WindowListener {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             // It is ok to not have the secrets yet to start with.
-            spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets);
+            if (!StringUtils.isWhitespace(serialNumber)) {
+                spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets);
+            } else {
+                spi = new Spi(posId, eftposAddress, spiSecrets);
+            }
         } catch (Spi.CompatibilityException ex) {
             LOG.error("# ");
             LOG.error("# Compatibility check failed: " + ex.getCause().getMessage());
@@ -345,49 +347,60 @@ public class FormMain extends JFrame implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        if (!isAppStarted) {
+        if (!isAppStarted || spi.getCurrentStatus() != SpiStatus.UNPAIRED) {
             printStatusAndActions();
         }
     }
 
     private void onDeviceAddressChanged(DeviceAddressStatus deviceAddressStatus) {
         btnAction.setEnabled(false);
-        if (spi.getCurrentStatus() == SpiStatus.UNPAIRED) {
-            if (deviceAddressStatus != null) {
-                switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
-                    case SUCCESS:
-                        txtDeviceAddress.setText(deviceAddressStatus.getAddress());
-                        btnAction.setEnabled(true);
+        if (deviceAddressStatus != null) {
+            eftposAddress = deviceAddressStatus.getAddress() + (acquirerCode.equals("gko") ? ":8080" : "");
+            switch (spi.getCurrentStatus()) {
+                case UNPAIRED:
+                    switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
+                        case SUCCESS:
+                            txtDeviceAddress.setText(eftposAddress);
+                            btnAction.setEnabled(true);
 
-                        if (isStartButtonClicked) {
-                            isStartButtonClicked = false;
-                            Start();
-                        } else {
-                            showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
-                        }
-                        break;
-                    case INVALID_SERIAL_NUMBER:
-                        txtDeviceAddress.setText("");
-                        showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                        break;
-                    case DEVICE_SERVICE_ERROR:
-                        txtDeviceAddress.setText("");
-                        showMessageDialog(null, "Device service is down!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                        break;
-                    case ADDRESS_NOT_CHANGED:
-                        btnAction.setEnabled(true);
-                        showMessageDialog(null, "The IP address have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                        break;
-                    case SERIAL_NUMBER_NOT_CHANGED:
-                        btnAction.setEnabled(true);
-                        showMessageDialog(null, "The Serial Number have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                        break;
-                    default:
-                        showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                        break;
-                }
+                            if (isStartButtonClicked) {
+                                isStartButtonClicked = false;
+                                Start();
+                            } else {
+                                showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                            }
+                            break;
+                        case INVALID_SERIAL_NUMBER:
+                            txtDeviceAddress.setText("");
+                            showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                            break;
+                        case DEVICE_SERVICE_ERROR:
+                            txtDeviceAddress.setText("");
+                            showMessageDialog(null, "Device service is down!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                            break;
+                        case ADDRESS_NOT_CHANGED:
+                            btnAction.setEnabled(true);
+                            showMessageDialog(null, "The IP address have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                            break;
+                        case SERIAL_NUMBER_NOT_CHANGED:
+                            btnAction.setEnabled(true);
+                            showMessageDialog(null, "The Serial Number have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                            break;
+                        default:
+                            showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                            break;
+                    }
+                    break;
+                case PAIRED_CONNECTING:
+                    txtDeviceAddress.setText(eftposAddress);
+                    break;
+                case PAIRED_CONNECTED:
+                    //For later use
+                    break;
             }
         }
+
+
     }
 
     private void onTxFlowStateChanged(TransactionFlowState txState) {
@@ -470,6 +483,11 @@ public class FormMain extends JFrame implements WindowListener {
         formAction.txtAreaFlow.setText("");
         formAction.lblFlowMessage.setText("# --> Terminal Configuration Response Successful");
         TerminalConfigurationResponse terminalConfigurationResponse = new TerminalConfigurationResponse(message);
+        if (StringUtils.isWhitespace(serialNumber)) {
+            serialNumber = terminalConfigurationResponse.getSerialNumber();
+            saveSecrets();
+        }
+        txtSerialNumber.setText(serialNumber);
         formAction.txtAreaFlow.append("# Terminal Configuration Response #" + "\n");
         formAction.txtAreaFlow.append("# Comms Selected: " + terminalConfigurationResponse.getCommsSelected() + "\n");
         formAction.txtAreaFlow.append("# Merchant Id: " + terminalConfigurationResponse.getMerchantId() + "\n");
@@ -1139,16 +1157,22 @@ public class FormMain extends JFrame implements WindowListener {
     @Override
     public void windowOpened(WindowEvent e) {
         if (new File("Secrets.bin").exists()) {
-            secretsFile = formMain.readFromBinaryFile("Secrets.bin");
-            formMain.txtDeviceAddress.setText(secretsFile.get("EftposAddress"));
-            formMain.txtPosId.setText(secretsFile.get("PosId"));
+            secretsFile = readFromBinaryFile("Secrets.bin");
+            String secretsString = secretsFile.get("Secrets");
+            spiSecrets = new Secrets(secretsString.split(":")[0].trim(), secretsString.split(":")[1].trim());
+            eftposAddress = secretsFile.get("EftposAddress");
+            formMain.txtDeviceAddress.setText(eftposAddress);
+            posId = secretsFile.get("PosId");
+            formMain.txtPosId.setText(posId);
             formMain.txtPosId.setEnabled(true);
-            formMain.txtSerialNumber.setText(secretsFile.get("SerialNumber"));
+            serialNumber = secretsFile.get("SerialNumber");
+            formMain.txtSerialNumber.setText(serialNumber);
             formMain.txtSerialNumber.setEnabled(false);
-            formMain.autoAddressEnabled = Boolean.parseBoolean(secretsFile.get("AutoAddressEnabled"));
-            formMain.autoCheckBox.setSelected(autoAddressEnabled);
-            formMain.autoCheckBox.setEnabled(false);
-            formMain.testModeCheckBox.setSelected(Boolean.parseBoolean(secretsFile.get("TestMode")));
+            autoAddressEnabled = true; //it should be true by default
+            formMain.autoAddressEnabled = autoAddressEnabled; //Boolean.parseBoolean(secretsFile.get("AutoAddressEnabled"));
+//            formMain.autoCheckBox.setSelected(autoAddressEnabled);
+            testMode = Boolean.parseBoolean(secretsFile.get("TestMode"));
+            formMain.testModeCheckBox.setSelected(testMode);
             formMain.testModeCheckBox.setEnabled(false);
             formMain.txtSecrets.setText(secretsFile.get("Secrets"));
             formMain.txtSecrets.setEnabled(true);
@@ -1255,10 +1279,10 @@ public class FormMain extends JFrame implements WindowListener {
         testModeCheckBox.setSelected(true);
         testModeCheckBox.setText("Test Mode");
         pnlAutoAddress.add(testModeCheckBox, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        autoCheckBox = new JCheckBox();
-        autoCheckBox.setSelected(true);
-        autoCheckBox.setText("Auto");
-        pnlAutoAddress.add(autoCheckBox, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+//        autoCheckBox = new JCheckBox();
+//        autoCheckBox.setSelected(true);
+//        autoCheckBox.setText("Auto");
+//        pnlAutoAddress.add(autoCheckBox, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnSave = new JButton();
         btnSave.setText("Save");
         pnlAutoAddress.add(btnSave, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -1296,7 +1320,6 @@ public class FormMain extends JFrame implements WindowListener {
         lblPairingStatus.setText("Unpaired");
         panel1.add(lblPairingStatus, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnAction = new JButton();
-        btnAction.setEnabled(false);
         btnAction.setText("btnAction");
         panel1.add(btnAction, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblPosId.setLabelFor(txtPosId);

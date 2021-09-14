@@ -60,9 +60,9 @@ public class FormAction implements WindowListener {
                     transactionsFrame.setEnabled(true);
                     actionDialog.setVisible(false);
                     if (formMain.spi.getCurrentStatus() == SpiStatus.PAIRED_CONNECTING) {
-                        formMain.btnSave.setEnabled(formMain.autoCheckBox.isSelected());
-                        formMain.autoCheckBox.setEnabled(true);
-                        formMain.testModeCheckBox.setEnabled(true);
+//                        formMain.btnSave.setEnabled(formMain.autoCheckBox.isSelected());
+//                        formMain.autoCheckBox.setEnabled(true);
+//                        formMain.testModeCheckBox.setEnabled(true);
                         mainFrame.pack();
                     }
                     break;
