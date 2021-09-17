@@ -1,5 +1,9 @@
 package io.mx51.ramenpos;
 
+import com.google.gson.Gson;
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
+import com.intellij.uiDesigner.core.Spacer;
 import io.mx51.spi.Spi;
 import io.mx51.spi.model.*;
 import org.apache.commons.lang.StringUtils;
@@ -11,13 +15,14 @@ import javax.swing.border.TitledBorder;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.text.StyleContext;
 import java.awt.*;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
+import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import static io.mx51.spi.Spi.getVersion;
 import static javax.swing.JOptionPane.*;
@@ -45,10 +50,16 @@ public class FormMain extends JFrame implements WindowListener {
     public JLabel lblSerialNumber;
     public JLabel lblDeviceAddress;
     public JLabel lblSettings;
+    public JButton btnResolveAddress;
+    public JComboBox cmbTenantsList;
+    public JLabel lblTenants;
+    public JTextField txtOtherTenant;
+    public JLabel lblOther;
+
 
     private static final Logger LOG = LogManager.getLogger("spi");
     private static final String apiKey = "RamenPosDeviceAddressApiKey"; // this key needs to be requested from Assembly Payments
-    private static final String acquirerCode = "wbc";
+    private String tenantCode;
 
     Spi spi;
     String posId = "";
@@ -60,6 +71,7 @@ public class FormMain extends JFrame implements WindowListener {
     private boolean testMode;
 
     private final String multilineHtml = "<html><body style='width: 250px'>";
+    private static final String transactionsFile = "transactions.txt";
 
     static FormAction formAction;
     private static FormTransactions formTransactions;
@@ -68,38 +80,22 @@ public class FormMain extends JFrame implements WindowListener {
     static JFrame mainFrame;
     static JDialog actionDialog;
 
-    private static HashMap<String, String> secretsFile = new HashMap<String, String>();
+    private static HashMap<String, String> secretsFile = new HashMap<>();
     private boolean isStartButtonClicked;
     private boolean isAppStarted;
 
+    private HashMap<String, String> tenantsMap = new HashMap<>();
+    public static ArrayList<String> lastTransactions;
+
+
     private FormMain() {
         btnSave.addActionListener(e -> {
-            try {
-                if (!areControlsValid(false))
-                    return;
-
-                if (!isAppStarted & autoAddressEnabled) {
-                    serialNumber = "";
-                    eftposAddress = "";
-                    posId = "";
-                    isAppStarted = true;
-                    Start();
-                }
-
-                spi.setTestMode(testModeCheckBox.isSelected());
-                spi.setSerialNumber(txtSerialNumber.getText());
-            } catch (Exception ex) {
-                LOG.error("Failed while setting values", ex.getMessage());
-                showMessageDialog(null, "Failed while setting values " + ex.getMessage(), "Error", ERROR_MESSAGE);
+            if (!areControlsValid(false)) {
+                showMessageDialog(null, "Please fill necessary fields ", "Error", ERROR_MESSAGE);
+            } else if (spiSecrets != null) {
+                saveSecrets();
             }
         });
-//        autoCheckBox.addActionListener(e -> {
-//            btnAction.setEnabled(true);
-//            btnSave.setEnabled(autoCheckBox.isSelected());
-//            testModeCheckBox.setSelected(autoCheckBox.isSelected());
-//            testModeCheckBox.setEnabled(autoCheckBox.isSelected());
-//            txtSerialNumber.setEnabled(true);
-//        });
         btnTransactions.addActionListener(e -> {
             mainFrame.setEnabled(false);
             mainFrame.pack();
@@ -110,7 +106,6 @@ public class FormMain extends JFrame implements WindowListener {
         });
         secretsCheckBox.addActionListener(e -> {
             txtSecrets.setEnabled(secretsCheckBox.isSelected());
-//            autoCheckBox.setEnabled(!secretsCheckBox.isSelected());
             testModeCheckBox.setEnabled(!secretsCheckBox.isSelected());
             btnSave.setEnabled(!secretsCheckBox.isSelected());
             btnAction.setEnabled(true);
@@ -133,26 +128,22 @@ public class FormMain extends JFrame implements WindowListener {
                     isAppStarted = false;
                     isStartButtonClicked = true;
 
-//                    if (autoCheckBox.isSelected()) {
-//                        spi.setTestMode(testModeCheckBox.isSelected());
-//                    }
-
                     spiSecrets = new Secrets(txtSecrets.getText().split(":")[0].trim(), txtSecrets.getText().split(":")[1].trim());
-//                    if (!autoCheckBox.isSelected()) {
-//                        Start();
-//                    }
+
                     break;
                 case ComponentLabels.PAIR:
                     if (!areControlsValid(true))
                         return;
 
                     try {
-                        spi.setAutoAddressResolution(false);
-                        spi.setPosId(posId);
-                        spi.setEftposAddress(eftposAddress);
+                        posId = txtPosId.getText();
+                        eftposAddress = txtDeviceAddress.getText();
+
+                        Start();
+                        spi.pair();
+
                         mainFrame.pack();
 
-                        spi.pair();
                     } catch (Exception ex) {
                         LOG.error(ex.getMessage());
                         showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
@@ -161,12 +152,12 @@ public class FormMain extends JFrame implements WindowListener {
                 case ComponentLabels.UN_PAIR:
                     formMain.secretsCheckBox.setEnabled(false);
                     formMain.txtSecrets.setText("");
-//                    formMain.autoCheckBox.setEnabled(true);
                     formMain.testModeCheckBox.setEnabled(true);
                     formMain.btnSave.setEnabled(true);
                     formMain.txtPosId.setEnabled(true);
                     formMain.txtPosId.setText("");
                     formMain.txtSerialNumber.setEnabled(true);
+                    cmbTenantsList.setEnabled(true);
                     formMain.txtSerialNumber.setText("");
                     formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
@@ -176,6 +167,46 @@ public class FormMain extends JFrame implements WindowListener {
                     break;
                 default:
                     break;
+            }
+        });
+        btnResolveAddress.addActionListener(e -> {
+            if (!StringUtils.isWhitespace(txtSerialNumber.getText())) {
+                spi.setSerialNumber(txtSerialNumber.getText());
+                spi.setTestMode(testModeCheckBox.isSelected());
+            } else {
+                showMessageDialog(null, "Please enter Serial number", "Validation", INFORMATION_MESSAGE);
+            }
+        });
+        lastTransactions = new ArrayList<>();
+        cmbTenantsList.addItemListener(e -> {
+            if (e.getStateChange() == ItemEvent.SELECTED) {
+                String selectedOption = (String) cmbTenantsList.getSelectedItem();
+                if (selectedOption.equals(" "))
+                    return;
+                if (selectedOption.equals("Other")) {
+                    lblOther.setVisible(true);
+                    txtOtherTenant.setVisible(true);
+                } else {
+                    lblOther.setVisible(false);
+                    txtOtherTenant.setVisible(false);
+                    tenantCode = tenantsMap.get(selectedOption);
+                }
+            }
+        });
+        lblOther.setVisible(false);
+        txtOtherTenant.setVisible(false);
+        txtOtherTenant.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
+                tenantCode = txtOtherTenant.getText();
+            }
+        });
+
+        cmbTenantsList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                cmbTenantsList.removeItem(" ");
             }
         });
     }
@@ -227,8 +258,8 @@ public class FormMain extends JFrame implements WindowListener {
         secretsFile.put("PosId", posId);
         secretsFile.put("EftposAddress", eftposAddress);
         secretsFile.put("SerialNumber", serialNumber);
-        secretsFile.put("AutoAddressEnabled", String.valueOf(autoAddressEnabled));
         secretsFile.put("TestMode", String.valueOf(testModeCheckBox.isSelected()));
+        secretsFile.put("TenantCode", tenantCode);
         secretsFile.put("Secrets", spiSecrets.getEncKey() + ":" + spiSecrets.getHmacKey());
         writeToBinaryFile("Secrets.bin", secretsFile, false);
     }
@@ -247,8 +278,6 @@ public class FormMain extends JFrame implements WindowListener {
     }
 
     private boolean areControlsValid(boolean isPairing) {
-
-//        autoAddressEnabled = autoCheckBox.isSelected();
         posId = txtPosId.getText();
         eftposAddress = txtDeviceAddress.getText();
         serialNumber = txtSerialNumber.getText();
@@ -305,11 +334,11 @@ public class FormMain extends JFrame implements WindowListener {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             // It is ok to not have the secrets yet to start with.
-            if (!StringUtils.isWhitespace(serialNumber)) {
-                spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets);
-            } else {
-                spi = new Spi(posId, eftposAddress, spiSecrets);
-            }
+//            if (!StringUtils.isWhitespace(serialNumber)) {
+            spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets);
+//            } else {
+//                spi = new Spi(posId, eftposAddress, spiSecrets);
+//            }
         } catch (Spi.CompatibilityException ex) {
             LOG.error("# ");
             LOG.error("# Compatibility check failed: " + ex.getCause().getMessage());
@@ -337,8 +366,9 @@ public class FormMain extends JFrame implements WindowListener {
         spi.setTerminalConfigurationResponseDelegate(this::handleTerminalConfigurationResponse);
         spi.setBatteryLevelChangedDelegate(this::handleBatteryLevelChanged);
 
-        spi.setAcquirerCode(acquirerCode);
+        spi.setAcquirerCode(tenantCode);
         spi.setDeviceApiKey(apiKey);
+        spi.setTestMode(testModeCheckBox.isSelected());
 
         try {
             spi.start();
@@ -348,58 +378,60 @@ public class FormMain extends JFrame implements WindowListener {
         }
 
         if (!isAppStarted || spi.getCurrentStatus() != SpiStatus.UNPAIRED) {
-            printStatusAndActions();
+            SwingUtilities.invokeLater(this::printStatusAndActions);
         }
     }
 
     private void onDeviceAddressChanged(DeviceAddressStatus deviceAddressStatus) {
-        btnAction.setEnabled(false);
-        if (deviceAddressStatus != null) {
-            eftposAddress = deviceAddressStatus.getAddress() + (acquirerCode.equals("gko") ? ":8080" : "");
-            switch (spi.getCurrentStatus()) {
-                case UNPAIRED:
-                    switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
-                        case SUCCESS:
-                            txtDeviceAddress.setText(eftposAddress);
-                            btnAction.setEnabled(true);
+        SwingUtilities.invokeLater(() -> {
+            btnAction.setEnabled(false);
+            if (deviceAddressStatus != null) {
+                eftposAddress = deviceAddressStatus.getAddress() + (tenantCode.equals("gko") ? ":8080" : "");
+                switch (spi.getCurrentStatus()) {
+                    case UNPAIRED:
+                        switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
+                            case SUCCESS:
+                                txtDeviceAddress.setText(eftposAddress);
+                                btnAction.setEnabled(true);
 
-                            if (isStartButtonClicked) {
-                                isStartButtonClicked = false;
-                                Start();
-                            } else {
-                                showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
-                            }
-                            break;
-                        case INVALID_SERIAL_NUMBER:
-                            txtDeviceAddress.setText("");
-                            showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                            break;
-                        case DEVICE_SERVICE_ERROR:
-                            txtDeviceAddress.setText("");
-                            showMessageDialog(null, "Device service is down!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                            break;
-                        case ADDRESS_NOT_CHANGED:
-                            btnAction.setEnabled(true);
-                            showMessageDialog(null, "The IP address have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                            break;
-                        case SERIAL_NUMBER_NOT_CHANGED:
-                            btnAction.setEnabled(true);
-                            showMessageDialog(null, "The Serial Number have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                            break;
-                        default:
-                            showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
-                            break;
-                    }
-                    break;
-                case PAIRED_CONNECTING:
-                    txtDeviceAddress.setText(eftposAddress);
-                    break;
-                case PAIRED_CONNECTED:
-                    //For later use
-                    break;
+                                if (isStartButtonClicked) {
+                                    isStartButtonClicked = false;
+                                    Start();
+                                } else {
+                                    showMessageDialog(null, "Device Address has been updated to " + deviceAddressStatus.getAddress(), "Info : Device Address Updated", INFORMATION_MESSAGE);
+                                }
+                                break;
+                            case INVALID_SERIAL_NUMBER:
+                                txtDeviceAddress.setText("");
+                                showMessageDialog(null, "The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                                break;
+                            case DEVICE_SERVICE_ERROR:
+                                txtDeviceAddress.setText("");
+                                showMessageDialog(null, "Device service is down!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                                break;
+                            case ADDRESS_NOT_CHANGED:
+                                btnAction.setEnabled(true);
+                                showMessageDialog(null, "The IP address have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                                break;
+                            case SERIAL_NUMBER_NOT_CHANGED:
+                                btnAction.setEnabled(true);
+                                showMessageDialog(null, "The Serial Number have not changed!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                                break;
+                            default:
+                                showMessageDialog(null, "The IP address have not changed or The serial number is invalid!", "Error : Device Address Not Updated", ERROR_MESSAGE);
+                                break;
+                        }
+                        break;
+                    case PAIRED_CONNECTING:
+                        txtDeviceAddress.setText(eftposAddress);
+                        break;
+                    case PAIRED_CONNECTED:
+                        //For later use
+                        break;
+                }
             }
-        }
 
+        });
 
     }
 
@@ -483,10 +515,6 @@ public class FormMain extends JFrame implements WindowListener {
         formAction.txtAreaFlow.setText("");
         formAction.lblFlowMessage.setText("# --> Terminal Configuration Response Successful");
         TerminalConfigurationResponse terminalConfigurationResponse = new TerminalConfigurationResponse(message);
-        if (StringUtils.isWhitespace(serialNumber)) {
-            serialNumber = terminalConfigurationResponse.getSerialNumber();
-            saveSecrets();
-        }
         txtSerialNumber.setText(serialNumber);
         formAction.txtAreaFlow.append("# Terminal Configuration Response #" + "\n");
         formAction.txtAreaFlow.append("# Comms Selected: " + terminalConfigurationResponse.getCommsSelected() + "\n");
@@ -551,6 +579,7 @@ public class FormMain extends JFrame implements WindowListener {
                         btnTransactions.setVisible(false);
                         try {
                             Files.deleteIfExists(Paths.get("Secrets.bin"));
+                            Files.deleteIfExists(Paths.get(transactionsFile));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -822,7 +851,6 @@ public class FormMain extends JFrame implements WindowListener {
                         case GET_TRANSACTION:
                             handleFinishedGetTransaction(txState);
                             break;
-
                         default:
                             formAction.txtAreaFlow.append("# CAN'T HANDLE TX TYPE: " + txState.getType() + "\n");
                             break;
@@ -860,6 +888,7 @@ public class FormMain extends JFrame implements WindowListener {
                 formAction.txtAreaFlow.append("# BANKED NON-CASH AMOUNT: $" + purchaseResponse.getBankNonCashAmount() / 100.0 + "\n");
                 formAction.txtAreaFlow.append("# BANKED CASH AMOUNT: $" + purchaseResponse.getBankCashAmount() / 100.0 + "\n");
                 formAction.txtAreaFlow.append("# SURCHARGE AMOUNT: $" + purchaseResponse.getSurchargeAmount() / 100.0 + "\n");
+                persistLastTransaction(purchaseResponse.getPosRefId());
                 break;
             case FAILED:
                 formAction.txtAreaFlow.append("# WE DID NOT GET PAID :(" + "\n");
@@ -1152,10 +1181,13 @@ public class FormMain extends JFrame implements WindowListener {
         formAction.txtAction3.setVisible(false);
         formAction.txtAction4.setVisible(false);
         formAction.cboxAction1.setVisible(false);
+        formAction.cmbTransactions.setVisible(false);
+        formAction.lblAction5.setVisible(false);
     }
 
     @Override
     public void windowOpened(WindowEvent e) {
+        loadTenants();
         if (new File("Secrets.bin").exists()) {
             secretsFile = readFromBinaryFile("Secrets.bin");
             String secretsString = secretsFile.get("Secrets");
@@ -1168,10 +1200,11 @@ public class FormMain extends JFrame implements WindowListener {
             serialNumber = secretsFile.get("SerialNumber");
             formMain.txtSerialNumber.setText(serialNumber);
             formMain.txtSerialNumber.setEnabled(false);
-            autoAddressEnabled = true; //it should be true by default
-            formMain.autoAddressEnabled = autoAddressEnabled; //Boolean.parseBoolean(secretsFile.get("AutoAddressEnabled"));
-//            formMain.autoCheckBox.setSelected(autoAddressEnabled);
             testMode = Boolean.parseBoolean(secretsFile.get("TestMode"));
+            tenantCode = secretsFile.get("TenantCode");
+            if (!tenantsMap.isEmpty())
+                formMain.cmbTenantsList.setSelectedItem(tenantsMap.entrySet().stream().filter(entry -> tenantCode.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().get());
+            cmbTenantsList.setEnabled(false);
             formMain.testModeCheckBox.setSelected(testMode);
             formMain.testModeCheckBox.setEnabled(false);
             formMain.txtSecrets.setText(secretsFile.get("Secrets"));
@@ -1183,13 +1216,80 @@ public class FormMain extends JFrame implements WindowListener {
         } else {
             btnAction.setText(ComponentLabels.PAIR);
         }
+        readLastTransactions();
         isAppStarted = true;
         Start();
     }
 
+    private void loadTenants() {
+        Gson GSON = new Gson();
+        Tenants tenants = null;
+
+        try {
+            tenants = Spi.getAvailableTenants("assembly", apiKey, "AU");
+        } catch (Exception e) {
+            LOG.error(String.format("# Error while retrieving Tenants - %s, will try to load from cache", e.getLocalizedMessage()));
+        }
+
+        if (tenants == null & new File("tenants.bin").exists()) {
+            tenants = GSON.fromJson((String) readFromBinaryFile("tenants.bin"), Tenants.class);
+            LOG.info("# Tenants successfully loaded from cache");
+        }
+
+        if (tenants != null && tenants.getData().size() > 0) {
+            cmbTenantsList.addItem(" ");
+            tenants.getData().forEach(tenantDetails -> {
+                tenantsMap.put(tenantDetails.getName(), tenantDetails.getCode());
+                cmbTenantsList.addItem(tenantDetails.getName());
+            });
+            writeToBinaryFile("tenants.bin", GSON.toJson(tenants), false);
+        }
+        cmbTenantsList.addItem("Other");
+    }
+
+    private void readLastTransactions() {
+        if (new File(transactionsFile).exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(transactionsFile))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    lastTransactions.add(line);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            try {
+                new File(transactionsFile).createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        lastTransactions.forEach(s -> formAction.cmbTransactions.addItem(s));
+    }
+
+
+    private void persistLastTransaction(String posRefId) {
+        lastTransactions.add(0, posRefId);
+        formAction.cmbTransactions.addItem(posRefId);
+        if (lastTransactions.size() > 10) {
+            lastTransactions.remove(11);
+        }
+        try (BufferedWriter wr = new BufferedWriter(new FileWriter(transactionsFile))) {
+            lastTransactions.forEach(s -> {
+                try {
+                    wr.write(s);
+                    wr.newLine();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void windowClosing(WindowEvent e) {
-
     }
 
     @Override
@@ -1233,40 +1333,50 @@ public class FormMain extends JFrame implements WindowListener {
      */
     private void $$$setupUI$$$() {
         pnlMain = new JPanel();
-        pnlMain.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(5, 1, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.setLayout(new GridLayoutManager(5, 1, new Insets(3, 3, 3, 3), -1, -1));
         pnlMain.setEnabled(false);
         pnlSettings = new JPanel();
-        pnlSettings.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(4, 2, new Insets(3, 3, 3, 3), -1, -1));
+        pnlSettings.setLayout(new GridLayoutManager(6, 2, new Insets(3, 3, 3, 3), -1, -1));
         pnlSettings.setEnabled(true);
-        pnlMain.add(pnlSettings, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        pnlMain.add(pnlSettings, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         pnlSettings.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.black), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
         lblPosId = new JLabel();
         lblPosId.setText("Pos Id");
-        pnlSettings.add(lblPosId, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlSettings.add(lblPosId, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         txtPosId = new JTextField();
         txtPosId.setText("");
-        pnlSettings.add(txtPosId, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlSettings.add(txtPosId, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         lblSerialNumber = new JLabel();
         lblSerialNumber.setText("Serial Number");
-        pnlSettings.add(lblSerialNumber, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlSettings.add(lblSerialNumber, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         txtSerialNumber = new JTextField();
-        pnlSettings.add(txtSerialNumber, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlSettings.add(txtSerialNumber, new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblDeviceAddress = new JLabel();
         lblDeviceAddress.setText("Device Address");
-        pnlSettings.add(lblDeviceAddress, new com.intellij.uiDesigner.core.GridConstraints(3, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlSettings.add(lblDeviceAddress, new GridConstraints(5, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         txtDeviceAddress = new JTextField();
-        pnlSettings.add(txtDeviceAddress, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlSettings.add(txtDeviceAddress, new GridConstraints(5, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         lblSettings = new JLabel();
         Font lblSettingsFont = this.$$$getFont$$$(null, Font.BOLD, 16, lblSettings.getFont());
         if (lblSettingsFont != null) lblSettings.setFont(lblSettingsFont);
         lblSettings.setHorizontalAlignment(0);
         lblSettings.setHorizontalTextPosition(0);
         lblSettings.setText("Settings");
-        pnlSettings.add(lblSettings, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlSettings.add(lblSettings, new GridConstraints(0, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        cmbTenantsList = new JComboBox();
+        pnlSettings.add(cmbTenantsList, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        lblTenants = new JLabel();
+        lblTenants.setText("Payment Provider");
+        pnlSettings.add(lblTenants, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        txtOtherTenant = new JTextField();
+        pnlSettings.add(txtOtherTenant, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        lblOther = new JLabel();
+        lblOther.setText("Other");
+        pnlSettings.add(lblOther, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlAutoAddress = new JPanel();
-        pnlAutoAddress.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 3, new Insets(3, 3, 3, 3), -1, -1));
+        pnlAutoAddress.setLayout(new GridLayoutManager(3, 3, new Insets(3, 3, 3, 3), -1, -1));
         pnlAutoAddress.setEnabled(true);
-        pnlMain.add(pnlAutoAddress, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        pnlMain.add(pnlAutoAddress, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         pnlAutoAddress.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.black), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
         lblAutoAddress = new JLabel();
         Font lblAutoAddressFont = this.$$$getFont$$$(null, Font.BOLD, 16, lblAutoAddress.getFont());
@@ -1274,54 +1384,54 @@ public class FormMain extends JFrame implements WindowListener {
         lblAutoAddress.setHorizontalAlignment(0);
         lblAutoAddress.setHorizontalTextPosition(0);
         lblAutoAddress.setText("Auto Address Resolution");
-        pnlAutoAddress.add(lblAutoAddress, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 3, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlAutoAddress.add(lblAutoAddress, new GridConstraints(0, 0, 1, 3, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         testModeCheckBox = new JCheckBox();
         testModeCheckBox.setSelected(true);
         testModeCheckBox.setText("Test Mode");
-        pnlAutoAddress.add(testModeCheckBox, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-//        autoCheckBox = new JCheckBox();
-//        autoCheckBox.setSelected(true);
-//        autoCheckBox.setText("Auto");
-//        pnlAutoAddress.add(autoCheckBox, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlAutoAddress.add(testModeCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnSave = new JButton();
         btnSave.setText("Save");
-        pnlAutoAddress.add(btnSave, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlAutoAddress.add(btnSave, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnResolveAddress = new JButton();
+        btnResolveAddress.setText("Retrieve Address");
+        pnlAutoAddress.add(btnResolveAddress, new GridConstraints(2, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlSecrets = new JPanel();
-        pnlSecrets.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 2, new Insets(3, 3, 3, 3), -1, -1));
-        pnlMain.add(pnlSecrets, new com.intellij.uiDesigner.core.GridConstraints(3, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, true));
+        pnlSecrets.setLayout(new GridLayoutManager(3, 2, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.add(pnlSecrets, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, true));
         pnlSecrets.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.black), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, null));
         secretsCheckBox = new JCheckBox();
         secretsCheckBox.setText("Secrets");
-        pnlSecrets.add(secretsCheckBox, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final com.intellij.uiDesigner.core.Spacer spacer1 = new com.intellij.uiDesigner.core.Spacer();
-        pnlSecrets.add(spacer1, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        pnlSecrets.add(secretsCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final Spacer spacer1 = new Spacer();
+        pnlSecrets.add(spacer1, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         txtSecrets = new JTextField();
         txtSecrets.setEnabled(false);
-        pnlSecrets.add(txtSecrets, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlSecrets.add(txtSecrets, new GridConstraints(2, 0, 1, 2, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         lblSecrets = new JLabel();
         Font lblSecretsFont = this.$$$getFont$$$(null, Font.BOLD, 16, lblSecrets.getFont());
         if (lblSecretsFont != null) lblSecrets.setFont(lblSecretsFont);
         lblSecrets.setHorizontalAlignment(0);
         lblSecrets.setText("Secrets");
-        pnlSecrets.add(lblSecrets, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlSecrets.add(lblSecrets, new GridConstraints(0, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlSwitch = new JPanel();
-        pnlSwitch.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 2, new Insets(3, 3, 3, 3), -1, -1));
-        pnlMain.add(pnlSwitch, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        pnlSwitch.setLayout(new GridLayoutManager(1, 2, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.add(pnlSwitch, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         btnTransactions = new JButton();
         btnTransactions.setText("Transactions");
         btnTransactions.setVisible(false);
-        pnlSwitch.add(btnTransactions, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final com.intellij.uiDesigner.core.Spacer spacer2 = new com.intellij.uiDesigner.core.Spacer();
-        pnlSwitch.add(spacer2, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        pnlSwitch.add(btnTransactions, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final Spacer spacer2 = new Spacer();
+        pnlSwitch.add(spacer2, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         final JPanel panel1 = new JPanel();
-        panel1.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
-        pnlMain.add(panel1, new com.intellij.uiDesigner.core.GridConstraints(4, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        panel1.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
+        pnlMain.add(panel1, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         lblPairingStatus = new JLabel();
         lblPairingStatus.setText("Unpaired");
-        panel1.add(lblPairingStatus, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel1.add(lblPairingStatus, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnAction = new JButton();
+        btnAction.setEnabled(true);
         btnAction.setText("btnAction");
-        panel1.add(btnAction, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        panel1.add(btnAction, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_EAST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblPosId.setLabelFor(txtPosId);
         lblSerialNumber.setLabelFor(txtSerialNumber);
         lblDeviceAddress.setLabelFor(txtDeviceAddress);
@@ -1355,4 +1465,5 @@ public class FormMain extends JFrame implements WindowListener {
     public JComponent $$$getRootComponent$$$() {
         return pnlMain;
     }
+
 }
