@@ -55,6 +55,7 @@ public class FormMain extends JFrame implements WindowListener {
     public JLabel lblTenants;
     public JTextField txtOtherTenant;
     public JLabel lblOther;
+    public JPanel pnlAction;
 
 
     private static final Logger LOG = LogManager.getLogger("spi");
@@ -158,6 +159,9 @@ public class FormMain extends JFrame implements WindowListener {
                     formMain.txtPosId.setText("");
                     formMain.txtSerialNumber.setEnabled(true);
                     cmbTenantsList.setEnabled(true);
+                    if (!cmbTenantsList.getSelectedItem().equals(" "))
+                        cmbTenantsList.addItem(" ");
+                    cmbTenantsList.setSelectedItem(" ");
                     formMain.txtSerialNumber.setText("");
                     formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
@@ -186,6 +190,7 @@ public class FormMain extends JFrame implements WindowListener {
                 if (selectedOption.equals("Other")) {
                     lblOther.setVisible(true);
                     txtOtherTenant.setVisible(true);
+                    mainFrame.pack();
                 } else {
                     lblOther.setVisible(false);
                     txtOtherTenant.setVisible(false);
@@ -334,11 +339,7 @@ public class FormMain extends JFrame implements WindowListener {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             // It is ok to not have the secrets yet to start with.
-//            if (!StringUtils.isWhitespace(serialNumber)) {
             spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets);
-//            } else {
-//                spi = new Spi(posId, eftposAddress, spiSecrets);
-//            }
         } catch (Spi.CompatibilityException ex) {
             LOG.error("# ");
             LOG.error("# Compatibility check failed: " + ex.getCause().getMessage());
@@ -353,6 +354,10 @@ public class FormMain extends JFrame implements WindowListener {
         }
 
         spi.setPosInfo("assembly", "2.6.3");
+        spi.setTestMode(testModeCheckBox.isSelected());
+        spi.setAcquirerCode(tenantCode);
+        spi.setDeviceApiKey(apiKey);
+
         options = new TransactionOptions();
 
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
@@ -365,10 +370,6 @@ public class FormMain extends JFrame implements WindowListener {
         spi.setTerminalStatusResponseDelegate(this::handleTerminalStatusResponse);
         spi.setTerminalConfigurationResponseDelegate(this::handleTerminalConfigurationResponse);
         spi.setBatteryLevelChangedDelegate(this::handleBatteryLevelChanged);
-
-        spi.setAcquirerCode(tenantCode);
-        spi.setDeviceApiKey(apiKey);
-        spi.setTestMode(testModeCheckBox.isSelected());
 
         try {
             spi.start();
@@ -423,7 +424,8 @@ public class FormMain extends JFrame implements WindowListener {
                         }
                         break;
                     case PAIRED_CONNECTING:
-                        txtDeviceAddress.setText(eftposAddress);
+                        if (deviceAddressStatus.getDeviceAddressResponseCode() == DeviceAddressResponseCode.SUCCESS)
+                            txtDeviceAddress.setText(eftposAddress);
                         break;
                     case PAIRED_CONNECTED:
                         //For later use
@@ -1335,6 +1337,15 @@ public class FormMain extends JFrame implements WindowListener {
         pnlMain = new JPanel();
         pnlMain.setLayout(new GridLayoutManager(5, 1, new Insets(3, 3, 3, 3), -1, -1));
         pnlMain.setEnabled(false);
+        pnlSwitch = new JPanel();
+        pnlSwitch.setLayout(new GridLayoutManager(1, 2, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.add(pnlSwitch, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        btnTransactions = new JButton();
+        btnTransactions.setText("Transactions");
+        btnTransactions.setVisible(false);
+        pnlSwitch.add(btnTransactions, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        final Spacer spacer1 = new Spacer();
+        pnlSwitch.add(spacer1, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         pnlSettings = new JPanel();
         pnlSettings.setLayout(new GridLayoutManager(6, 2, new Insets(3, 3, 3, 3), -1, -1));
         pnlSettings.setEnabled(true);
@@ -1402,8 +1413,8 @@ public class FormMain extends JFrame implements WindowListener {
         secretsCheckBox = new JCheckBox();
         secretsCheckBox.setText("Secrets");
         pnlSecrets.add(secretsCheckBox, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final Spacer spacer1 = new Spacer();
-        pnlSecrets.add(spacer1, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
+        final Spacer spacer2 = new Spacer();
+        pnlSecrets.add(spacer2, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
         txtSecrets = new JTextField();
         txtSecrets.setEnabled(false);
         pnlSecrets.add(txtSecrets, new GridConstraints(2, 0, 1, 2, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
@@ -1413,25 +1424,16 @@ public class FormMain extends JFrame implements WindowListener {
         lblSecrets.setHorizontalAlignment(0);
         lblSecrets.setText("Secrets");
         pnlSecrets.add(lblSecrets, new GridConstraints(0, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        pnlSwitch = new JPanel();
-        pnlSwitch.setLayout(new GridLayoutManager(1, 2, new Insets(3, 3, 3, 3), -1, -1));
-        pnlMain.add(pnlSwitch, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        btnTransactions = new JButton();
-        btnTransactions.setText("Transactions");
-        btnTransactions.setVisible(false);
-        pnlSwitch.add(btnTransactions, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
-        final Spacer spacer2 = new Spacer();
-        pnlSwitch.add(spacer2, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
-        final JPanel panel1 = new JPanel();
-        panel1.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
-        pnlMain.add(panel1, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        pnlAction = new JPanel();
+        pnlAction.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
+        pnlMain.add(pnlAction, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         lblPairingStatus = new JLabel();
         lblPairingStatus.setText("Unpaired");
-        panel1.add(lblPairingStatus, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlAction.add(lblPairingStatus, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnAction = new JButton();
         btnAction.setEnabled(true);
         btnAction.setText("btnAction");
-        panel1.add(btnAction, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_EAST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlAction.add(btnAction, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_EAST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblPosId.setLabelFor(txtPosId);
         lblSerialNumber.setLabelFor(txtSerialNumber);
         lblDeviceAddress.setLabelFor(txtDeviceAddress);
