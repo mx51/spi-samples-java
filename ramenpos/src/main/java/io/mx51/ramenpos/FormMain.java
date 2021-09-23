@@ -188,7 +188,7 @@ public class FormMain extends JFrame implements WindowListener {
         cmbTenantsList.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 String selectedOption = (String) cmbTenantsList.getSelectedItem();
-                if(selectedOption==null)
+                if (selectedOption == null)
                     return;
                 if (selectedOption.equals(" "))
                     return;
@@ -1070,8 +1070,7 @@ public class FormMain extends JFrame implements WindowListener {
     private void handleFinishedGetLastTransaction(TransactionFlowState txState) {
         if (txState.getResponse() != null) {
             GetLastTransactionResponse gltResponse = new GetLastTransactionResponse(txState.getResponse());
-            if(gltResponse.wasRetrievedSuccessfully())
-            {
+            if (gltResponse.wasRetrievedSuccessfully()) {
                 formAction.txtAreaFlow.append("# Got Successful Get Last Transaction Response!!! :)" + "\n");
                 formAction.txtAreaFlow.append("# Response Message: " + gltResponse.getResponseText() + "\n");
                 formAction.txtAreaFlow.append("# PosRefID: " + gltResponse.getPosRefId() + "\n");
@@ -1083,9 +1082,7 @@ public class FormMain extends JFrame implements WindowListener {
                 formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
                 formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
                 formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
-            }
-            else
-            {
+            } else {
                 formAction.txtAreaFlow.append("# Got Unsuccessful Get Transaction Response!!!" + "\n");
                 formAction.txtAreaFlow.append("# Response Message: " + gltResponse.getResponseText() + "\n");
                 formAction.txtAreaFlow.append("# PosRefID: " + gltResponse.getPosRefId() + "\n");
