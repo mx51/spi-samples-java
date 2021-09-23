@@ -4,6 +4,8 @@
 # Generated files
 out/
 output.log
+*.bin
+transactions.txt
 
 # Gradle files
 .gradle/
