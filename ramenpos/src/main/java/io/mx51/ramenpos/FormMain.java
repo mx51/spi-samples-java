@@ -12,6 +12,8 @@ import org.apache.logging.log4j.Logger;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.FontUIResource;
 import javax.swing.text.StyleContext;
 import java.awt.*;
@@ -23,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import static io.mx51.spi.Spi.getVersion;
 import static javax.swing.JOptionPane.*;
@@ -33,7 +36,6 @@ public class FormMain extends JFrame implements WindowListener {
     public JTextField txtSecrets;
     public JPanel pnlAutoAddress;
     public JCheckBox testModeCheckBox;
-    //    public JCheckBox autoCheckBox;
     public JButton btnSave;
     public JPanel pnlSecrets;
     public JCheckBox secretsCheckBox;
@@ -60,7 +62,7 @@ public class FormMain extends JFrame implements WindowListener {
 
     private static final Logger LOG = LogManager.getLogger("spi");
     private static final String apiKey = "RamenPosDeviceAddressApiKey"; // this key needs to be requested from Assembly Payments
-    private String tenantCode;
+    private String tenantCode = "";
 
     Spi spi;
     String posId = "";
@@ -68,8 +70,6 @@ public class FormMain extends JFrame implements WindowListener {
     Secrets spiSecrets = null;
     TransactionOptions options;
     private String serialNumber = "";
-    private boolean autoAddressEnabled = true;
-    private boolean testMode;
 
     private final String multilineHtml = "<html><body style='width: 250px'>";
     private static final String transactionsFile = "transactions.txt";
@@ -156,14 +156,10 @@ public class FormMain extends JFrame implements WindowListener {
                     formMain.testModeCheckBox.setEnabled(true);
                     formMain.btnSave.setEnabled(true);
                     formMain.txtPosId.setEnabled(true);
-                    formMain.txtPosId.setText("");
+                    formMain.txtDeviceAddress.setEnabled(true);
+                    formMain.btnResolveAddress.setEnabled(true);
                     formMain.txtSerialNumber.setEnabled(true);
                     cmbTenantsList.setEnabled(true);
-                    if (!cmbTenantsList.getSelectedItem().equals(" "))
-                        cmbTenantsList.addItem(" ");
-                    cmbTenantsList.setSelectedItem(" ");
-                    formMain.txtSerialNumber.setText("");
-                    formMain.txtDeviceAddress.setText("");
                     mainFrame.setEnabled(false);
                     isAppStarted = false;
                     isStartButtonClicked = false;
@@ -174,17 +170,26 @@ public class FormMain extends JFrame implements WindowListener {
             }
         });
         btnResolveAddress.addActionListener(e -> {
-            if (!StringUtils.isWhitespace(txtSerialNumber.getText())) {
-                spi.setSerialNumber(txtSerialNumber.getText());
-                spi.setTestMode(testModeCheckBox.isSelected());
-            } else {
-                showMessageDialog(null, "Please enter Serial number", "Validation", INFORMATION_MESSAGE);
+            if (spi.getCurrentStatus() == SpiStatus.PAIRED_CONNECTED) {
+                String newAddress = null;
+                try {
+                    newAddress = spi.getTerminalAddress();
+                    if (newAddress != null && !StringUtils.isWhitespace(newAddress)) {
+                        txtDeviceAddress.setText(newAddress + (tenantCode.equals("gko") ? ":8080" : "")); //temporary workaround for Gecko terminal address
+                        showMessageDialog(null, String.format("Address has been resolved to %s", newAddress), "Updated", INFORMATION_MESSAGE);
+                    }
+                } catch (IOException | ExecutionException | InterruptedException ex) {
+                    ex.printStackTrace();
+                }
             }
+
         });
         lastTransactions = new ArrayList<>();
         cmbTenantsList.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 String selectedOption = (String) cmbTenantsList.getSelectedItem();
+                if(selectedOption==null)
+                    return;
                 if (selectedOption.equals(" "))
                     return;
                 if (selectedOption.equals("Other")) {
@@ -196,6 +201,7 @@ public class FormMain extends JFrame implements WindowListener {
                     txtOtherTenant.setVisible(false);
                     tenantCode = tenantsMap.get(selectedOption);
                 }
+                activateButtons();
             }
         });
         lblOther.setVisible(false);
@@ -214,6 +220,10 @@ public class FormMain extends JFrame implements WindowListener {
                 cmbTenantsList.removeItem(" ");
             }
         });
+        final InputValidator inputValidator = new InputValidator();
+        txtPosId.getDocument().addDocumentListener(inputValidator);
+        txtSerialNumber.getDocument().addDocumentListener(inputValidator);
+        txtDeviceAddress.getDocument().addDocumentListener(inputValidator);
     }
 
     public static void main(String[] args) throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
@@ -288,7 +298,12 @@ public class FormMain extends JFrame implements WindowListener {
         serialNumber = txtSerialNumber.getText();
 
         if (isPairing && (eftposAddress == null || StringUtils.isWhitespace(eftposAddress))) {
-            showMessageDialog(null, "Please enable auto address resolution or enter a device address", "Error", ERROR_MESSAGE);
+            showMessageDialog(null, "Please enter a device address", "Error", ERROR_MESSAGE);
+            return false;
+        }
+
+        if (isPairing && (StringUtils.trim(tenantCode).equals(""))) {
+            showMessageDialog(null, "Payment provider must be selected before starting pairing", "Error", ERROR_MESSAGE);
             return false;
         }
 
@@ -312,6 +327,11 @@ public class FormMain extends JFrame implements WindowListener {
 
         if (eftposAddress == null || StringUtils.isWhitespace(eftposAddress)) {
             showMessageDialog(null, "Please provide a Eftpos address", "Error", ERROR_MESSAGE);
+            return false;
+        }
+
+        if (StringUtils.trim(tenantCode).equals("")) {
+            showMessageDialog(null, "Payment provider must be selected", "Error", ERROR_MESSAGE);
             return false;
         }
 
@@ -339,7 +359,7 @@ public class FormMain extends JFrame implements WindowListener {
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
             // It is ok to not have the secrets yet to start with.
-            spi = new Spi(posId, serialNumber, eftposAddress, spiSecrets);
+            spi = new Spi(posId, eftposAddress, spiSecrets);
         } catch (Spi.CompatibilityException ex) {
             LOG.error("# ");
             LOG.error("# Compatibility check failed: " + ex.getCause().getMessage());
@@ -355,6 +375,7 @@ public class FormMain extends JFrame implements WindowListener {
 
         spi.setPosInfo("assembly", "2.6.3");
         spi.setTestMode(testModeCheckBox.isSelected());
+        spi.setSerialNumber(serialNumber);
         spi.setAcquirerCode(tenantCode);
         spi.setDeviceApiKey(apiKey);
 
@@ -387,7 +408,8 @@ public class FormMain extends JFrame implements WindowListener {
         SwingUtilities.invokeLater(() -> {
             btnAction.setEnabled(false);
             if (deviceAddressStatus != null) {
-                eftposAddress = deviceAddressStatus.getAddress() + (tenantCode.equals("gko") ? ":8080" : "");
+                if (deviceAddressStatus.getAddress() != null)
+                    eftposAddress = deviceAddressStatus.getAddress() + (tenantCode.equals("gko") ? ":8080" : "");
                 switch (spi.getCurrentStatus()) {
                     case UNPAIRED:
                         switch (deviceAddressStatus.getDeviceAddressResponseCode()) {
@@ -517,7 +539,6 @@ public class FormMain extends JFrame implements WindowListener {
         formAction.txtAreaFlow.setText("");
         formAction.lblFlowMessage.setText("# --> Terminal Configuration Response Successful");
         TerminalConfigurationResponse terminalConfigurationResponse = new TerminalConfigurationResponse(message);
-        txtSerialNumber.setText(serialNumber);
         formAction.txtAreaFlow.append("# Terminal Configuration Response #" + "\n");
         formAction.txtAreaFlow.append("# Comms Selected: " + terminalConfigurationResponse.getCommsSelected() + "\n");
         formAction.txtAreaFlow.append("# Merchant Id: " + terminalConfigurationResponse.getMerchantId() + "\n");
@@ -578,10 +599,18 @@ public class FormMain extends JFrame implements WindowListener {
                         formAction.btnAction1.setText(ComponentLabels.OK_UNPAIRED);
                         formAction.btnAction2.setVisible(false);
                         formAction.btnAction3.setVisible(false);
+                        formMain.txtPosId.setEnabled(true);
+                        formMain.txtSerialNumber.setEnabled(true);
+                        formMain.txtDeviceAddress.setEnabled(true);
+                        formMain.btnResolveAddress.setEnabled(false);
+                        formMain.cmbTenantsList.setEnabled(true);
+                        txtSecrets.setText("");
+                        activateButtons();
                         btnTransactions.setVisible(false);
                         try {
                             Files.deleteIfExists(Paths.get("Secrets.bin"));
                             Files.deleteIfExists(Paths.get(transactionsFile));
+                            lastTransactions = new ArrayList<>();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -709,6 +738,8 @@ public class FormMain extends JFrame implements WindowListener {
                                 spi.getCurrentStatus());
                         mainFrame.setVisible(false);
                         transactionsFrame.setVisible(true);
+                        txtDeviceAddress.setEnabled(false);
+                        btnResolveAddress.setEnabled(true);
                         getOKActionComponents();
                         break;
 
@@ -1039,14 +1070,26 @@ public class FormMain extends JFrame implements WindowListener {
     private void handleFinishedGetLastTransaction(TransactionFlowState txState) {
         if (txState.getResponse() != null) {
             GetLastTransactionResponse gltResponse = new GetLastTransactionResponse(txState.getResponse());
+            if(gltResponse.wasRetrievedSuccessfully())
+            {
+                formAction.txtAreaFlow.append("# Got Successful Get Last Transaction Response!!! :)" + "\n");
+                formAction.txtAreaFlow.append("# Response Message: " + gltResponse.getResponseText() + "\n");
+                formAction.txtAreaFlow.append("# PosRefID: " + gltResponse.getPosRefId() + "\n");
 
-            PurchaseResponse purchaseResponse = new PurchaseResponse(txState.getResponse());
-            formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
-            formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
-            formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
-            formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
-            formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
-            formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
+                PurchaseResponse purchaseResponse = new PurchaseResponse(txState.getResponse());
+                formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
+                formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
+                formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
+                formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
+                formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
+                formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
+            }
+            else
+            {
+                formAction.txtAreaFlow.append("# Got Unsuccessful Get Transaction Response!!!" + "\n");
+                formAction.txtAreaFlow.append("# Response Message: " + gltResponse.getResponseText() + "\n");
+                formAction.txtAreaFlow.append("# PosRefID: " + gltResponse.getPosRefId() + "\n");
+            }
         } else {
             // We did not even get a response, like in the case of a time-out.
             formAction.txtAreaFlow.append("# Could not retrieve last transaction." + "\n");
@@ -1057,17 +1100,23 @@ public class FormMain extends JFrame implements WindowListener {
         if (txState.getResponse() != null) {
             GetTransactionResponse gtResponse = new GetTransactionResponse(txState.getResponse());
 
-            formAction.txtAreaFlow.append("# Got Successful Get Transaction Response!!! :)" + "\n");
-            formAction.txtAreaFlow.append("# Response Message: " + gtResponse.getTxMessage() + "\n");
-            formAction.txtAreaFlow.append("# PosRefID: " + gtResponse.getPosRefId() + "\n");
+            if (gtResponse.wasRetrievedSuccessfully()) {
+                formAction.txtAreaFlow.append("# Got Successful Get Transaction Response!!! :)" + "\n");
+                formAction.txtAreaFlow.append("# Response Message: " + gtResponse.getTxMessage() + "\n");
+                formAction.txtAreaFlow.append("# PosRefID: " + gtResponse.getPosRefId() + "\n");
 
-            PurchaseResponse purchaseResponse = new PurchaseResponse(txState.getResponse());
-            formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
-            formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
-            formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
-            formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
-            formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
-            formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
+                PurchaseResponse purchaseResponse = new PurchaseResponse(txState.getResponse());
+                formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
+                formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
+                formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
+                formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
+                formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
+                formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
+            } else {
+                formAction.txtAreaFlow.append("# Got Unsuccessful Get Transaction Response!!!" + "\n");
+                formAction.txtAreaFlow.append("# Response Message: " + gtResponse.getTxMessage() + "\n");
+                formAction.txtAreaFlow.append("# PosRefID: " + gtResponse.getPosRefId() + "\n");
+            }
         } else {
             // We did not even get a response, like in the case of a time-out.
             formAction.txtAreaFlow.append("# Could not retrieve get transaction." + "\n");
@@ -1202,12 +1251,11 @@ public class FormMain extends JFrame implements WindowListener {
             serialNumber = secretsFile.get("SerialNumber");
             formMain.txtSerialNumber.setText(serialNumber);
             formMain.txtSerialNumber.setEnabled(false);
-            testMode = Boolean.parseBoolean(secretsFile.get("TestMode"));
             tenantCode = secretsFile.get("TenantCode");
             if (!tenantsMap.isEmpty())
                 formMain.cmbTenantsList.setSelectedItem(tenantsMap.entrySet().stream().filter(entry -> tenantCode.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().get());
             cmbTenantsList.setEnabled(false);
-            formMain.testModeCheckBox.setSelected(testMode);
+            formMain.testModeCheckBox.setSelected(Boolean.parseBoolean(secretsFile.get("TestMode")));
             formMain.testModeCheckBox.setEnabled(false);
             formMain.txtSecrets.setText(secretsFile.get("Secrets"));
             formMain.txtSecrets.setEnabled(true);
@@ -1218,21 +1266,38 @@ public class FormMain extends JFrame implements WindowListener {
         } else {
             btnAction.setText(ComponentLabels.PAIR);
         }
+        activateButtons();
         readLastTransactions();
         isAppStarted = true;
         Start();
+
     }
+
+    //Used for realtime activate/deactivate control buttons
+    private void activateButtons() {
+        boolean tenantSelected = cmbTenantsList.getSelectedItem() != null && !cmbTenantsList.getSelectedItem().equals(" ");
+        boolean posIdEntered = !StringUtils.isWhitespace(txtPosId.getText().trim());
+        boolean serialEntered = !StringUtils.isWhitespace(txtSerialNumber.getText());
+        boolean addressEntered = !StringUtils.isWhitespace(txtDeviceAddress.getText());
+
+        btnSave.setEnabled(tenantSelected && posIdEntered && serialEntered && addressEntered);
+        btnResolveAddress.setEnabled(spi != null && spi.getCurrentStatus() == SpiStatus.PAIRED_CONNECTED);
+        btnAction.setEnabled(btnSave.isEnabled());
+    }
+
 
     private void loadTenants() {
         Gson GSON = new Gson();
         Tenants tenants = null;
 
+        //We try to load up to date tenants every time
         try {
             tenants = Spi.getAvailableTenants("assembly", apiKey, "AU");
         } catch (Exception e) {
             LOG.error(String.format("# Error while retrieving Tenants - %s, will try to load from cache", e.getLocalizedMessage()));
         }
 
+        //if tenants are not available then use cached data
         if (tenants == null & new File("tenants.bin").exists()) {
             tenants = GSON.fromJson((String) readFromBinaryFile("tenants.bin"), Tenants.class);
             LOG.info("# Tenants successfully loaded from cache");
@@ -1249,6 +1314,7 @@ public class FormMain extends JFrame implements WindowListener {
         cmbTenantsList.addItem("Other");
     }
 
+    //Loading stored transactions (used for GetTransaction)
     private void readLastTransactions() {
         if (new File(transactionsFile).exists()) {
             try (BufferedReader br = new BufferedReader(new FileReader(transactionsFile))) {
@@ -1269,7 +1335,7 @@ public class FormMain extends JFrame implements WindowListener {
         lastTransactions.forEach(s -> formAction.cmbTransactions.addItem(s));
     }
 
-
+    //Appending last transactions
     private void persistLastTransaction(String posRefId) {
         lastTransactions.add(0, posRefId);
         formAction.cmbTransactions.addItem(posRefId);
@@ -1317,6 +1383,24 @@ public class FormMain extends JFrame implements WindowListener {
     @Override
     public void windowDeactivated(WindowEvent e) {
 
+    }
+
+    private final class InputValidator implements DocumentListener {
+
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            activateButtons();
+        }
+
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            activateButtons();
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            activateButtons();
+        }
     }
 
     {
