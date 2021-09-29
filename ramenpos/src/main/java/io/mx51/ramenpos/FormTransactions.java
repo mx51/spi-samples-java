@@ -49,6 +49,7 @@ public class FormTransactions implements WindowListener {
     public JButton btnHeaderFooter;
     public JPanel pnlSwitch;
     public JButton btnSettings;
+    public JButton btnReversal;
 
     public FormTransactions() {
         cboxReceiptFromEftpos.addItemListener(e -> {
@@ -276,6 +277,9 @@ public class FormTransactions implements WindowListener {
             formAction.lblAction4.setVisible(false);
             formAction.txtAction4.setVisible(false);
             formAction.cboxAction1.setVisible(false);
+            formAction.cmbTransactions.setVisible(true);
+            formAction.lblAction5.setVisible(true);
+            formAction.lblAction5.setText("Trasaction id: ");
             transactionsFrame.setEnabled(false);
             actionDialog.setVisible(true);
             actionDialog.pack();
@@ -352,6 +356,32 @@ public class FormTransactions implements WindowListener {
 
             mainFrame.setVisible(true);
             mainFrame.pack();
+        });
+        btnReversal.addActionListener(e -> {
+            formAction.btnAction1.setEnabled(true);
+            formAction.btnAction1.setVisible(true);
+            formAction.btnAction1.setText(ComponentLabels.REVERSAL);
+            formAction.btnAction2.setVisible(true);
+            formAction.btnAction2.setText(ComponentLabels.CANCEL);
+            formAction.btnAction3.setVisible(false);
+            formAction.lblAction1.setVisible(true);
+            formAction.lblAction1.setText("Transaction id: ");
+            formAction.txtAction1.setVisible(true);
+            formAction.txtAction1.setText("");
+            formAction.lblAction2.setVisible(false);
+            formAction.txtAction2.setVisible(false);
+            formAction.lblAction3.setVisible(false);
+            formAction.txtAction3.setVisible(false);
+            formAction.lblAction4.setVisible(false);
+            formAction.txtAction4.setVisible(false);
+            formAction.cboxAction1.setVisible(false);
+            formAction.cmbTransactions.setVisible(true);
+            formAction.lblAction5.setVisible(true);
+            formAction.lblAction5.setText("Trasaction id: ");
+            transactionsFrame.setEnabled(false);
+            actionDialog.setVisible(true);
+            actionDialog.pack();
+            transactionsFrame.pack();
         });
     }
 
@@ -465,7 +495,7 @@ public class FormTransactions implements WindowListener {
         btnHeaderFooter.setText("Header / Footer");
         pnlOtherTransactions.add(btnHeaderFooter, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlTransactionalActions = new JPanel();
-        pnlTransactionalActions.setLayout(new GridLayoutManager(4, 3, new Insets(3, 3, 3, 3), -1, -1));
+        pnlTransactionalActions.setLayout(new GridLayoutManager(5, 3, new Insets(3, 3, 3, 3), -1, -1));
         pnlMain.add(pnlTransactionalActions, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         pnlTransactionalActions.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.black), null, TitledBorder.DEFAULT_JUSTIFICATION, TitledBorder.DEFAULT_POSITION, null, new Color(-4473925)));
         lblTransActions = new JLabel();
@@ -502,6 +532,9 @@ public class FormTransactions implements WindowListener {
         btnGetTrans = new JButton();
         btnGetTrans.setText("Get Transaction");
         pnlTransactionalActions.add(btnGetTrans, new GridConstraints(3, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        btnReversal = new JButton();
+        btnReversal.setText("Reversal");
+        pnlTransactionalActions.add(btnReversal, new GridConstraints(4, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         pnlSettings = new JPanel();
         pnlSettings.setLayout(new GridLayoutManager(4, 1, new Insets(3, 3, 3, 3), -1, -1));
         pnlMain.add(pnlSettings, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));

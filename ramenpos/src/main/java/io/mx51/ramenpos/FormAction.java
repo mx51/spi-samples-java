@@ -17,6 +17,8 @@ import java.util.Date;
 import java.util.Locale;
 
 import static io.mx51.ramenpos.FormMain.*;
+import static javax.swing.JOptionPane.ERROR_MESSAGE;
+import static javax.swing.JOptionPane.showMessageDialog;
 
 public class FormAction implements WindowListener {
     public JPanel pnlMain;
@@ -96,6 +98,12 @@ public class FormAction implements WindowListener {
                         case MOTO:
                             doMoto();
                             break;
+                        case GET_TRANSACTION:
+                            doGetTx();
+                            break;
+                        case REVERSAL:
+                            doReversal();
+                            break;
                         default:
                             lblFlowMessage.setText("Retry by selecting from the options");
                             formMain.printStatusAndActions();
@@ -117,6 +125,9 @@ public class FormAction implements WindowListener {
                     break;
                 case ComponentLabels.RECOVERY:
                     doRecovery();
+                    break;
+                case ComponentLabels.REVERSAL:
+                    doReversal();
                     break;
                 case ComponentLabels.SET:
                     doHeaderFooter();
@@ -148,14 +159,33 @@ public class FormAction implements WindowListener {
                     transactionsFrame.setEnabled(true);
                     actionDialog.setVisible(false);
                     break;
+                case ComponentLabels.YES:
+                    formMain.spi.ackFlowEndedAndBackToIdle();
+                    showMessageDialog(null, "Payment Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    txtAreaFlow.setText("");
+                    formMain.printStatusAndActions();
+                    transactionsFrame.setEnabled(true);
+                    actionDialog.setVisible(false);
+                    break;
                 default:
                     break;
             }
         });
 
         btnAction3.addActionListener(e -> {
-            if (btnAction3.getText().equals(ComponentLabels.CANCEL)) {
-                formMain.spi.cancelTransaction();
+            switch (btnAction3.getText())
+            {
+                case ComponentLabels.CANCEL:
+                    formMain.spi.cancelTransaction();
+                    break;
+                case ComponentLabels.NO:
+                    formMain.spi.ackFlowEndedAndBackToIdle();
+                    txtAreaFlow.setText("");
+                    formMain.printStatusAndActions();
+                    transactionsFrame.setEnabled(true);
+                    actionDialog.setVisible(false);
+                default:
+                    break;
             }
         });
     }
@@ -250,17 +280,43 @@ public class FormAction implements WindowListener {
 
     private void doRecovery() {
 
-        if (txtAction1.getText().equals("")) {
-            JOptionPane.showMessageDialog(null, "Please enter refence!", "Recovery", JOptionPane.INFORMATION_MESSAGE);
+        String posRefId = "";
+        if (txtAction1.getText().equals("") && cmbTransactions.getItemCount() == 0) {
+            JOptionPane.showMessageDialog(null, "Please enter reference id!", "Recovery", JOptionPane.INFORMATION_MESSAGE);
             return;
+        } else if (txtAction1.getText().equals("")) {
+            posRefId = (String) cmbTransactions.getSelectedItem();
+        } else {
+            posRefId = txtAction1.getText().trim();
         }
 
-        InitiateTxResult recRes = formMain.spi.initiateRecovery(txtAction1.getText().trim(), TransactionType.PURCHASE);
+        InitiateTxResult recRes = formMain.spi.initiateRecovery(posRefId, TransactionType.PURCHASE);
 
         if (recRes.isInitiated()) {
             txtAreaFlow.setText("# Recovery Initiated. Will be updated with Progress." + "\n");
         } else {
             txtAreaFlow.setText("# Could not initiate recovery: " + recRes.getMessage() + ". Please Retry." + "\n");
+        }
+    }
+
+    private void doReversal() {
+
+        String posRefId = "";
+        if (txtAction1.getText().equals("") && cmbTransactions.getItemCount() == 0) {
+            JOptionPane.showMessageDialog(null, "Please enter reference id!", "Reversal", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        } else if (txtAction1.getText().equals("")) {
+            posRefId = (String) cmbTransactions.getSelectedItem();
+        } else {
+            posRefId = txtAction1.getText().trim();
+        }
+
+        InitiateTxResult revRes = formMain.spi.initiateReversal(posRefId);
+
+        if (revRes.isInitiated()) {
+            txtAreaFlow.setText("# Reversal Initiated. Will be updated with Progress." + "\n");
+        } else {
+            txtAreaFlow.setText("# Could not initiate reversal: " + revRes.getMessage() + ". Please Retry." + "\n");
         }
     }
 

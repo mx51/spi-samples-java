@@ -16,11 +16,14 @@ public class ComponentLabels {
     static final String CASH_OUT = "Cash Out";
     static final String MOTO = "MOTO";
     static final String RECOVERY = "Recovery";
+    static final String REVERSAL = "Reversal";
     static final String SET = "Set";
     static final String PRINT = "Print";
     static final String START = "Start";
     static final String LAST_TX = "Get Last Tx";
     static final String GET_TX = "Get Tx";
+    static final String YES = "Yes";
+    static final String NO = "No";
 
     static final String AMOUNT = "Amounts (Cents)";
     static final String TIP_AMOUNT = "Tip Amount (Cents)";
