@@ -373,7 +373,7 @@ public class FormMain extends JFrame implements WindowListener {
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
-        spi.setPosInfo("assembly", "2.6.3");
+        spi.setPosInfo("assembly", "2.9.0");
         spi.setTestMode(testModeCheckBox.isSelected());
         spi.setSerialNumber(serialNumber);
         spi.setAcquirerCode(tenantCode);
