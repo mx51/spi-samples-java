@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="pnlMain" layout-manager="GridLayoutManager" row-count="5" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
     <margin top="3" left="3" bottom="3" right="3"/>
     <constraints>
-      <xy x="20" y="20" width="438" height="487"/>
+      <xy x="20" y="20" width="438" height="513"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -132,7 +132,7 @@
           </component>
         </children>
       </grid>
-      <grid id="a4ce3" binding="pnlTransactionalActions" layout-manager="GridLayoutManager" row-count="4" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+      <grid id="a4ce3" binding="pnlTransactionalActions" layout-manager="GridLayoutManager" row-count="5" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
         <margin top="3" left="3" bottom="3" right="3"/>
         <constraints>
           <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
@@ -223,6 +223,14 @@
             </constraints>
             <properties>
               <text value="Get Transaction"/>
+            </properties>
+          </component>
+          <component id="3cca4" class="javax.swing.JButton" binding="btnReversal">
+            <constraints>
+              <grid row="4" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Reversal"/>
             </properties>
           </component>
         </children>

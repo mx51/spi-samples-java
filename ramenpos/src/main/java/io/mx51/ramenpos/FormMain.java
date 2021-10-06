@@ -536,6 +536,8 @@ public class FormMain extends JFrame implements WindowListener {
     }
 
     private void handleTerminalConfigurationResponse(Message message) {
+        if (spi.getCurrentFlow() == SpiFlow.TRANSACTION)
+            return;
         formAction.txtAreaFlow.setText("");
         formAction.lblFlowMessage.setText("# --> Terminal Configuration Response Successful");
         TerminalConfigurationResponse terminalConfigurationResponse = new TerminalConfigurationResponse(message);
@@ -708,10 +710,9 @@ public class FormMain extends JFrame implements WindowListener {
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
-                                case UNKNOWN:
-                                    getOKActionComponents();
-                                    formAction.txtAreaFlow.append("# .. Unexpected Flow .. " + spi.getCurrentFlow() + "\n");
-                                    break;
+//                                case UNKNOWN:
+//                                    getRetryActionComponents();
+//                                    break;
                                 default:
                                     break;
                             }
@@ -791,8 +792,7 @@ public class FormMain extends JFrame implements WindowListener {
                                     getUnvisibleActionComponents();
                                     break;
                                 case UNKNOWN:
-                                    getOKActionComponents();
-                                    formAction.txtAreaFlow.setText("# .. Unexpected Flow .. " + spi.getCurrentFlow() + "\n");
+                                    getRetryActionComponents();
                                     break;
                                 default:
                                     break;
@@ -843,7 +843,7 @@ public class FormMain extends JFrame implements WindowListener {
                 formAction.txtAreaFlow.append("# Finished: " + txState.isFinished() + "\n");
                 formAction.txtAreaFlow.append("# Success: " + txState.getSuccess() + "\n");
                 formAction.txtAreaFlow.append("# GLT Response PosRefId: " + txState.getGltResponsePosRefId() + "\n");
-                formAction.txtAreaFlow.append("# Last GLT Response Request Id: " + txState.getGtRequestId() + "\n");
+                formAction.txtAreaFlow.append("# Last GT Response Request Id: " + txState.getGtRequestId() + "\n");
 
                 if (txState.isAwaitingSignatureCheck()) {
                     // We need to print the receipt for the customer to sign.
@@ -883,6 +883,9 @@ public class FormMain extends JFrame implements WindowListener {
                             break;
                         case GET_TRANSACTION:
                             handleFinishedGetTransaction(txState);
+                            break;
+                        case REVERSAL:
+                            handleFinishedReversal(txState);
                             break;
                         default:
                             formAction.txtAreaFlow.append("# CAN'T HANDLE TX TYPE: " + txState.getType() + "\n");
@@ -939,10 +942,8 @@ public class FormMain extends JFrame implements WindowListener {
                 }
                 break;
             case UNKNOWN:
-                formAction.txtAreaFlow.append("# WE'RE NOT QUITE SURE WHETHER WE GOT PAID OR NOT :/" + "\n");
-                formAction.txtAreaFlow.append("# CHECK THE LAST TRANSACTION ON THE EFTPOS ITSELF FROM THE APPROPRIATE MENU ITEM." + "\n");
-                formAction.txtAreaFlow.append("# IF YOU CONFIRM THAT THE CUSTOMER PAID, CLOSE THE ORDER." + "\n");
-                formAction.txtAreaFlow.append("# OTHERWISE, RETRY THE PAYMENT FROM SCRATCH." + "\n");
+                formAction.txtAreaFlow.append("# Please confirm the transactoin status on the EFTPOS terminal" + "\n");
+                formAction.txtAreaFlow.append("# Does it show the transaction was successful?" + "\n");
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -976,9 +977,8 @@ public class FormMain extends JFrame implements WindowListener {
                 }
                 break;
             case UNKNOWN:
-                formAction.txtAreaFlow.append("# WE'RE NOT QUITE SURE WHETHER THE REFUND WENT THROUGH OR NOT :/" + "\n");
-                formAction.txtAreaFlow.append("# CHECK THE LAST TRANSACTION ON THE EFTPOS ITSELF FROM THE APPROPRIATE MENU ITEM." + "\n");
-                formAction.txtAreaFlow.append("# YOU CAN THE TAKE THE APPROPRIATE ACTION." + "\n");
+                formAction.txtAreaFlow.append("# Please confirm the transactoin status on the EFTPOS terminal" + "\n");
+                formAction.txtAreaFlow.append("# Does it show the transaction was successful?" + "\n");
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -1015,9 +1015,8 @@ public class FormMain extends JFrame implements WindowListener {
                 }
                 break;
             case UNKNOWN:
-                formAction.txtAreaFlow.append("# WE'RE NOT QUITE SURE WHETHER THE CASHOUT WENT THROUGH OR NOT :/" + "\n");
-                formAction.txtAreaFlow.append("# CHECK THE LAST TRANSACTION ON THE EFTPOS ITSELF FROM THE APPROPRIATE MENU ITEM." + "\n");
-                formAction.txtAreaFlow.append("# YOU CAN THE TAKE THE APPROPRIATE ACTION." + "\n");
+                formAction.txtAreaFlow.append("# Please confirm the transactoin status on the EFTPOS terminal" + "\n");
+                formAction.txtAreaFlow.append("# Does it show the transaction was successful?" + "\n");
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -1058,9 +1057,8 @@ public class FormMain extends JFrame implements WindowListener {
                 }
                 break;
             case UNKNOWN:
-                formAction.txtAreaFlow.append("# WE'RE NOT QUITE SURE WHETHER THE MOTO WENT THROUGH OR NOT :/" + "\n");
-                formAction.txtAreaFlow.append("# CHECK THE LAST TRANSACTION ON THE EFTPOS ITSELF FROM THE APPROPRIATE MENU ITEM." + "\n");
-                formAction.txtAreaFlow.append("# YOU CAN THE TAKE THE APPROPRIATE ACTION." + "\n");
+                formAction.txtAreaFlow.append("# Please confirm the transactoin status on the EFTPOS terminal" + "\n");
+                formAction.txtAreaFlow.append("# Does it show the transaction was successful?" + "\n");
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -1106,17 +1104,32 @@ public class FormMain extends JFrame implements WindowListener {
                 formAction.txtAreaFlow.append("# Scheme: " + purchaseResponse.getSchemeName() + "\n");
                 formAction.txtAreaFlow.append("# Response: " + purchaseResponse.getResponseText() + "\n");
                 formAction.txtAreaFlow.append("# RRN: " + purchaseResponse.getRRN() + "\n");
-                formAction.txtAreaFlow.append("# Error: " + txState.getResponse().getError() + "\n");
                 formAction.txtAreaFlow.append("# Customer receipt:" + "\n");
                 formTransactions.txtAreaReceipt.append(purchaseResponse.getCustomerReceipt().trim() + "\n");
             } else {
                 formAction.txtAreaFlow.append("# Got Unsuccessful Get Transaction Response!!!" + "\n");
-                formAction.txtAreaFlow.append("# Response Message: " + gtResponse.getTxMessage() + "\n");
-                formAction.txtAreaFlow.append("# PosRefID: " + gtResponse.getPosRefId() + "\n");
+                formAction.txtAreaFlow.append("# Error: " + gtResponse.getError() + "\n");
+                formAction.txtAreaFlow.append("# Error Detail: " + gtResponse.getErrorDetail() + "\n");
+                if (gtResponse.getPosRefId() != null && !StringUtils.isWhitespace(gtResponse.getPosRefId()))
+                    formAction.txtAreaFlow.append("# PosRefID: " + gtResponse.getPosRefId() + "\n");
             }
         } else {
             // We did not even get a response, like in the case of a time-out.
             formAction.txtAreaFlow.append("# Could not retrieve get transaction." + "\n");
+        }
+    }
+
+    private void handleFinishedReversal(TransactionFlowState txState) {
+        if (txState.getResponse() != null) {
+            ReversalResponse revResponse = new ReversalResponse(txState.getResponse());
+            String reversedPosRefId = revResponse.getPosRefId();
+            if (revResponse.getSuccess()) {
+                formAction.txtAreaFlow.append("# Transaction reverse with posRefId " + reversedPosRefId + " is successful" + "\n");
+            } else {
+                formAction.txtAreaFlow.append("# " + revResponse.getErrorReason() + "\n");
+                formAction.txtAreaFlow.append("# " + revResponse.getErrorDetail() + "\n");
+                formAction.txtAreaFlow.append("# Pos Reference id: " + reversedPosRefId + "\n");
+            }
         }
     }
 
@@ -1217,6 +1230,16 @@ public class FormMain extends JFrame implements WindowListener {
         formAction.btnAction2.setVisible(false);
         formAction.btnAction3.setVisible(false);
         getUnvisibleActionComponents();
+    }
+
+    void getRetryActionComponents() {
+        formAction.btnAction1.setText(ComponentLabels.RETRY);
+        formAction.btnAction1.setVisible(true);
+        formAction.btnAction1.setEnabled(true);
+        formAction.btnAction2.setText(ComponentLabels.YES);
+        formAction.btnAction2.setVisible(true);
+        formAction.btnAction3.setText(ComponentLabels.NO);
+        formAction.btnAction3.setVisible(true);
     }
 
     private void getUnvisibleActionComponents() {
@@ -1334,8 +1357,10 @@ public class FormMain extends JFrame implements WindowListener {
 
     //Appending last transactions
     private void persistLastTransaction(String posRefId) {
-        lastTransactions.add(0, posRefId);
-        formAction.cmbTransactions.addItem(posRefId);
+        if (!StringUtils.isWhitespace(posRefId)) {
+            lastTransactions.add(0, posRefId);
+            formAction.cmbTransactions.addItem(posRefId);
+        }
         if (lastTransactions.size() > 10) {
             lastTransactions.remove(11);
         }
