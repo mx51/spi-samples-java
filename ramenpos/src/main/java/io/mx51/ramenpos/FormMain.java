@@ -710,9 +710,9 @@ public class FormMain extends JFrame implements WindowListener {
                                     formAction.btnAction3.setVisible(false);
                                     getUnvisibleActionComponents();
                                     break;
-//                                case UNKNOWN:
-//                                    getRetryActionComponents();
-//                                    break;
+                                case UNKNOWN:
+                                    getRetryActionComponents();
+                                    break;
                                 default:
                                     break;
                             }
