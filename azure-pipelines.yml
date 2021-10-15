@@ -17,19 +17,6 @@ variables:
   - name: BRANCH_NAME
     value: $[variables['Build.SourceBranch']]
 
-resources:
-  pipelines:
-    - pipeline: mx51.spi-client-java
-      source: mx51.spi-client-java
-      trigger:
-        branches:
-          include:
-            - feature/*
-  repositories:
-    - repository: self
-      type: git
-      ref: feature/2.9.0
-
 name: $(date:yyyyMMdd)$(rev:.r)
 
 stages:
@@ -47,7 +34,7 @@ stages:
             source: specific
             project: 4fb3dd62-1591-419c-9be2-97638a709c36
             pipeline: 262
-            artifact: drop
+            artifact: spi-client-java
             patterns: '**/*jar'
             path: $(Pipeline.Workspace)/s/ramenpos
         - task: Gradle@2
@@ -79,6 +66,7 @@ stages:
     - job:
       displayName: Github release
       steps:
+        - checkout: none
         - task: DownloadBuildArtifacts@0
           inputs:
             buildType: current
