@@ -1,0 +1,90 @@
+pool:
+  vmImage: ubuntu-20.04
+
+trigger:
+  branches:
+    include:
+      - '*'
+  tags:
+    include:
+      - '*'
+
+variables:
+  - name: BuildParameters.wrapperScript
+    value: gradlew
+  - name: BuildParameters.tasks
+    value: build
+  - name: BRANCH_NAME
+    value: $[variables['Build.SourceBranch']]
+
+resources:
+  pipelines:
+    - pipeline: mx51.spi-client-java
+      source: mx51.spi-client-java
+      trigger:
+        branches:
+          include:
+            - feature/*
+  repositories:
+    - repository: self
+      type: git
+      ref: feature/2.9.0
+name: $(date:yyyyMMdd)$(rev:.r)
+
+stages:
+- stage: build
+  displayName: Build
+  jobs:
+    - job:
+      displayName: Spi Samples java build
+      steps:
+        - checkout: self
+          clean: true
+        - task: DownloadPipelineArtifact@2
+          displayName: Download SPI library
+          inputs:
+            source: specific
+            project: 4fb3dd62-1591-419c-9be2-97638a709c36
+            pipeline: 262
+            artifact: drop
+            patterns: '**/*jar'
+            path: $(Pipeline.Workspace)/s/ramenpos
+        - task: Gradle@2
+          displayName: gradlew build
+          inputs:
+            wrapperScript: $(BuildParameters.wrapperScript)
+            cwd: ramenpos
+            tasks: $(BuildParameters.tasks)
+            publishJUnitResults: false
+        - task: CopyFiles@2
+          displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+          condition: succeededOrFailed()
+          inputs:
+            SourceFolder: $(system.defaultworkingdirectory)
+            Contents: '**/build/libs/*all.jar'
+            TargetFolder: $(build.artifactstagingdirectory)
+            CleanTargetFolder: true
+            flattenFolders: true
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: ramenpos'
+          condition: succeededOrFailed()
+          inputs:
+            PathtoPublish: $(build.artifactstagingdirectory)
+            ArtifactName: ramenpos
+- stage:
+  displayName: Github release
+  dependsOn: build
+  jobs:
+    - job:
+      displayName: Github release
+      steps:
+        - checkout: self
+          clean: true
+        - task: GitHubRelease@1
+          displayName: GitHub release (create)
+          condition: contains(variables['BRANCH_NAME'], 'refs/tags/')
+          inputs:
+            gitHubConnection: a4dec19b-3365-43b0-853f-45ac7cb062ea
+            assets: $(Build.ArtifactStagingDirectory)/ramenpos/*all.jar
+            isDraft: true
+            addChangeLog: false
