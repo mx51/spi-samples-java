@@ -29,6 +29,7 @@ resources:
     - repository: self
       type: git
       ref: feature/2.9.0
+
 name: $(date:yyyyMMdd)$(rev:.r)
 
 stages:
