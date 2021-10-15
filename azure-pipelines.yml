@@ -66,12 +66,13 @@ stages:
             TargetFolder: $(build.artifactstagingdirectory)
             CleanTargetFolder: true
             flattenFolders: true
-        - task: PublishBuildArtifacts@1
+        - task: PublishPipelineArtifact@1
           displayName: 'Publish Artifact: ramenpos'
           condition: succeededOrFailed()
           inputs:
-            PathtoPublish: $(build.artifactstagingdirectory)
-            ArtifactName: ramenpos
+            targetPath: '$(Pipeline.Workspace)'
+            artifactType: 'pipeline'
+            artifactName: 'ramenpos'
 - stage:
   displayName: Github release
   dependsOn: build
@@ -87,7 +88,7 @@ stages:
           inputs:
             gitHubConnection: a4dec19b-3365-43b0-853f-45ac7cb062ea
             action: 'create'
-            assets: $(Build.ArtifactStagingDirectory)/ramenpos/*all.jar
+            assets: $(Pipeline.Workspace)/ramenpos/*all.jar
             tagSource: 'auto'
             isDraft: true
             addChangeLog: false
