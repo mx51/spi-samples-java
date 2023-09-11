@@ -72,7 +72,7 @@ stages:
             buildType: current
             artifactName: ramenpos
             downloadPath: $(System.ArtifactsDirectory)
-        - task: GitHubRelease@1
+        - task: GitHubRelease@0
           displayName: GitHub release (create)
           condition: contains(variables['BRANCH_NAME'], 'refs/tags/')
           inputs:
