@@ -21,10 +21,12 @@ import java.awt.event.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static io.mx51.spi.Spi.getVersion;
@@ -88,6 +90,9 @@ public class FormMain extends JFrame implements WindowListener {
     private HashMap<String, String> tenantsMap = new HashMap<>();
     public static ArrayList<String> lastTransactions;
 
+    private String posRefId = UUID.randomUUID().toString();
+    private int purchaseAmount = LocalTime.now().getHour() * 100 + LocalTime.now().getMinute();
+    private boolean firstTx = true;
 
     private FormMain() {
         btnSave.addActionListener(e -> {
@@ -355,6 +360,7 @@ public class FormMain extends JFrame implements WindowListener {
 
     private void Start() {
         LOG.info("Starting RamenPos...");
+        System.out.println("Starting RamenPos...");
 
         try {
             // This is how you instantiate SPI while checking for JDK compatibility.
@@ -381,8 +387,28 @@ public class FormMain extends JFrame implements WindowListener {
 
         options = new TransactionOptions();
 
+
         spi.setDeviceAddressChangedHandler(this::onDeviceAddressChanged);
-        spi.setStatusChangedHandler(this::onSpiStatusChanged);
+//        spi.setStatusChangedHandler(this::onSpiStatusChanged);
+        spi.setStatusChangedHandler(new Spi.EventHandler<SpiStatus>() {
+            @Override
+            public void onEvent(SpiStatus value) {
+                if (value == SpiStatus.PAIRED_CONNECTED) {
+                    if(firstTx) {
+                        System.err.printf("\nInitiating purchase with posRefId: %s for amount: %d\n\n", posRefId, purchaseAmount);
+                        spi.initiatePurchaseTx(posRefId, purchaseAmount);
+                        firstTx = false;
+                    }
+                }
+                SwingUtilities.invokeLater(new Runnable() {
+                    public void run() {
+                        formAction.lblFlowMessage.setText("It's trying to connect");
+                        LOG.info("# --> SPI Status Changed: " + value);
+                        printStatusAndActions();
+                    }
+                });
+            }
+        });
         spi.setPairingFlowStateChangedHandler(this::onPairingFlowStateChanged);
         spi.setSecretsChangedHandler(this::onSecretsChanged);
         spi.setTxFlowStateChangedHandler(this::onTxFlowStateChanged);
@@ -396,6 +422,7 @@ public class FormMain extends JFrame implements WindowListener {
             spi.start();
         } catch (Exception ex) {
             LOG.error(ex.getMessage());
+            System.out.println(ex);
             showMessageDialog(null, ex.getMessage(), "Error", ERROR_MESSAGE);
         }
 
