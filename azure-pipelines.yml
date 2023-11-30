@@ -76,7 +76,7 @@ stages:
           displayName: GitHub release (create)
           condition: contains(variables['BRANCH_NAME'], 'refs/tags/')
           inputs:
-            gitHubConnection: mx51
+            gitHubConnection: mx51-oauth
             action: 'create'
             assets: $(System.ArtifactsDirectory)/ramenpos/*all.jar
             tagSource: 'auto'
