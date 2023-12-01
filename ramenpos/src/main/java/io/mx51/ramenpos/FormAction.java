@@ -1,5 +1,7 @@
 package io.mx51.ramenpos;
 
+import com.intellij.uiDesigner.core.GridConstraints;
+import com.intellij.uiDesigner.core.GridLayoutManager;
 import io.mx51.spi.model.InitiateTxResult;
 import io.mx51.spi.model.SpiStatus;
 import io.mx51.spi.model.TransactionType;
@@ -15,6 +17,8 @@ import java.util.Date;
 import java.util.Locale;
 
 import static io.mx51.ramenpos.FormMain.*;
+import static javax.swing.JOptionPane.ERROR_MESSAGE;
+import static javax.swing.JOptionPane.showMessageDialog;
 
 public class FormAction implements WindowListener {
     public JPanel pnlMain;
@@ -36,6 +40,8 @@ public class FormAction implements WindowListener {
     public JCheckBox cboxAction1;
     public JLabel lblAction4;
     public JTextField txtAction4;
+    public JComboBox cmbTransactions;
+    public JLabel lblAction5;
 
     public FormAction() {
         btnAction1.addActionListener(e -> {
@@ -60,9 +66,6 @@ public class FormAction implements WindowListener {
                     transactionsFrame.setEnabled(true);
                     actionDialog.setVisible(false);
                     if (formMain.spi.getCurrentStatus() == SpiStatus.PAIRED_CONNECTING) {
-                        formMain.btnSave.setEnabled(formMain.autoCheckBox.isSelected());
-                        formMain.autoCheckBox.setEnabled(true);
-                        formMain.testModeCheckBox.setEnabled(true);
                         mainFrame.pack();
                     }
                     break;
@@ -95,6 +98,12 @@ public class FormAction implements WindowListener {
                         case MOTO:
                             doMoto();
                             break;
+                        case GET_TRANSACTION:
+                            doGetTx();
+                            break;
+                        case REVERSAL:
+                            doReversal();
+                            break;
                         default:
                             lblFlowMessage.setText("Retry by selecting from the options");
                             formMain.printStatusAndActions();
@@ -117,6 +126,9 @@ public class FormAction implements WindowListener {
                 case ComponentLabels.RECOVERY:
                     doRecovery();
                     break;
+                case ComponentLabels.REVERSAL:
+                    doReversal();
+                    break;
                 case ComponentLabels.SET:
                     doHeaderFooter();
                     break;
@@ -125,6 +137,9 @@ public class FormAction implements WindowListener {
                     break;
                 case ComponentLabels.LAST_TX:
                     doLastTx();
+                    break;
+                case ComponentLabels.GET_TX:
+                    doGetTx();
                     break;
             }
         });
@@ -144,14 +159,33 @@ public class FormAction implements WindowListener {
                     transactionsFrame.setEnabled(true);
                     actionDialog.setVisible(false);
                     break;
+                case ComponentLabels.YES:
+                    formMain.spi.ackFlowEndedAndBackToIdle();
+                    showMessageDialog(null, "Payment Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    txtAreaFlow.setText("");
+                    formMain.printStatusAndActions();
+                    transactionsFrame.setEnabled(true);
+                    actionDialog.setVisible(false);
+                    break;
                 default:
                     break;
             }
         });
 
         btnAction3.addActionListener(e -> {
-            if (btnAction3.getText().equals(ComponentLabels.CANCEL)) {
-                formMain.spi.cancelTransaction();
+            switch (btnAction3.getText())
+            {
+                case ComponentLabels.CANCEL:
+                    formMain.spi.cancelTransaction();
+                    break;
+                case ComponentLabels.NO:
+                    formMain.spi.ackFlowEndedAndBackToIdle();
+                    txtAreaFlow.setText("");
+                    formMain.printStatusAndActions();
+                    transactionsFrame.setEnabled(true);
+                    actionDialog.setVisible(false);
+                default:
+                    break;
             }
         });
     }
@@ -246,17 +280,43 @@ public class FormAction implements WindowListener {
 
     private void doRecovery() {
 
-        if (txtAction1.getText().equals("")) {
-            JOptionPane.showMessageDialog(null, "Please enter refence!", "Recovery", JOptionPane.INFORMATION_MESSAGE);
+        String posRefId = "";
+        if (txtAction1.getText().equals("") && cmbTransactions.getItemCount() == 0) {
+            JOptionPane.showMessageDialog(null, "Please enter reference id!", "Recovery", JOptionPane.INFORMATION_MESSAGE);
             return;
+        } else if (txtAction1.getText().equals("")) {
+            posRefId = (String) cmbTransactions.getSelectedItem();
+        } else {
+            posRefId = txtAction1.getText().trim();
         }
 
-        InitiateTxResult recRes = formMain.spi.initiateRecovery(txtAction1.getText().trim(), TransactionType.PURCHASE);
+        InitiateTxResult recRes = formMain.spi.initiateRecovery(posRefId, TransactionType.PURCHASE);
 
         if (recRes.isInitiated()) {
             txtAreaFlow.setText("# Recovery Initiated. Will be updated with Progress." + "\n");
         } else {
             txtAreaFlow.setText("# Could not initiate recovery: " + recRes.getMessage() + ". Please Retry." + "\n");
+        }
+    }
+
+    private void doReversal() {
+
+        String posRefId = "";
+        if (txtAction1.getText().equals("") && cmbTransactions.getItemCount() == 0) {
+            JOptionPane.showMessageDialog(null, "Please enter reference id!", "Reversal", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        } else if (txtAction1.getText().equals("")) {
+            posRefId = (String) cmbTransactions.getSelectedItem();
+        } else {
+            posRefId = txtAction1.getText().trim();
+        }
+
+        InitiateTxResult revRes = formMain.spi.initiateReversal(posRefId);
+
+        if (revRes.isInitiated()) {
+            txtAreaFlow.setText("# Reversal Initiated. Will be updated with Progress." + "\n");
+        } else {
+            txtAreaFlow.setText("# Could not initiate reversal: " + revRes.getMessage() + ". Please Retry." + "\n");
         }
     }
 
@@ -267,6 +327,26 @@ public class FormAction implements WindowListener {
             txtAreaFlow.setText("# Last Transaction Initiated. Will be updated with Progress." + "\n");
         } else {
             txtAreaFlow.setText("# Could not initiate last transaction: " + coRes.getMessage() + ". Please Retry." + "\n");
+        }
+    }
+
+    private void doGetTx() {
+        String posRefId = "";
+        if (txtAction1.getText().equals("") && cmbTransactions.getItemCount() == 0) {
+            JOptionPane.showMessageDialog(null, "Please enter reference id!", "Get Transaction", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        } else if (txtAction1.getText().equals("")) {
+            posRefId = (String) cmbTransactions.getSelectedItem();
+        } else {
+            posRefId = txtAction1.getText().trim();
+        }
+
+        InitiateTxResult revRes = formMain.spi.initiateGetTx(posRefId);
+
+        if (revRes.isInitiated()) {
+            txtAreaFlow.setText("# Get Transaction Initiated. Will be updated with Progress." + "\n");
+        } else {
+            txtAreaFlow.setText("# Could not initiate get transaction: " + revRes.getMessage() + ". Please Retry." + "\n");
         }
     }
 
@@ -302,70 +382,77 @@ public class FormAction implements WindowListener {
      */
     private void $$$setupUI$$$() {
         pnlMain = new JPanel();
-        pnlMain.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(2, 1, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.setLayout(new GridLayoutManager(2, 1, new Insets(3, 3, 3, 3), -1, -1));
         pnlFlow = new JPanel();
-        pnlFlow.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(3, 2, new Insets(3, 3, 3, 3), -1, -1));
-        pnlMain.add(pnlFlow, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        pnlFlow.setLayout(new GridLayoutManager(3, 2, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.add(pnlFlow, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         lblFlow = new JLabel();
         lblFlow.setHorizontalAlignment(4);
         lblFlow.setHorizontalTextPosition(0);
         lblFlow.setText("Flow:");
-        pnlFlow.add(lblFlow, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_EAST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlFlow.add(lblFlow, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_EAST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblFlowMessage = new JLabel();
         lblFlowMessage.setAutoscrolls(false);
         Font lblFlowMessageFont = this.$$$getFont$$$(null, -1, 12, lblFlowMessage.getFont());
         if (lblFlowMessageFont != null) lblFlowMessage.setFont(lblFlowMessageFont);
         lblFlowMessage.setText("");
-        pnlFlow.add(lblFlowMessage, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlFlow.add(lblFlowMessage, new GridConstraints(1, 0, 1, 2, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblFlowStatus = new JLabel();
         lblFlowStatus.setForeground(new Color(-4517617));
         lblFlowStatus.setText("Idle");
-        pnlFlow.add(lblFlowStatus, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlFlow.add(lblFlowStatus, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final JScrollPane scrollPane1 = new JScrollPane();
         scrollPane1.setAutoscrolls(true);
-        pnlFlow.add(scrollPane1, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(350, 300), new Dimension(350, 300), null, 0, false));
+        pnlFlow.add(scrollPane1, new GridConstraints(2, 0, 1, 2, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_WANT_GROW, new Dimension(350, 300), new Dimension(350, 300), null, 0, false));
         txtAreaFlow = new JTextArea();
         txtAreaFlow.setEditable(false);
         scrollPane1.setViewportView(txtAreaFlow);
         pnlActions = new JPanel();
-        pnlActions.setLayout(new com.intellij.uiDesigner.core.GridLayoutManager(5, 3, new Insets(3, 3, 3, 3), -1, -1));
-        pnlMain.add(pnlActions, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_BOTH, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
+        pnlActions.setLayout(new GridLayoutManager(6, 3, new Insets(3, 3, 3, 3), -1, -1));
+        pnlMain.add(pnlActions, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         lblAction1 = new JLabel();
         lblAction1.setText("lblAction1");
-        pnlActions.add(lblAction1, new com.intellij.uiDesigner.core.GridConstraints(0, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlActions.add(lblAction1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         txtAction1 = new JTextField();
         txtAction1.setHorizontalAlignment(4);
-        pnlActions.add(txtAction1, new com.intellij.uiDesigner.core.GridConstraints(0, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlActions.add(txtAction1, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         lblAction2 = new JLabel();
         lblAction2.setText("lblAction2");
-        pnlActions.add(lblAction2, new com.intellij.uiDesigner.core.GridConstraints(1, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlActions.add(lblAction2, new GridConstraints(1, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         btnAction1 = new JButton();
         btnAction1.setText("");
-        pnlActions.add(btnAction1, new com.intellij.uiDesigner.core.GridConstraints(0, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
+        pnlActions.add(btnAction1, new GridConstraints(0, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
         txtAction2 = new JTextField();
         txtAction2.setHorizontalAlignment(4);
-        pnlActions.add(txtAction2, new com.intellij.uiDesigner.core.GridConstraints(1, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlActions.add(txtAction2, new GridConstraints(1, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         btnAction2 = new JButton();
         btnAction2.setText("");
-        pnlActions.add(btnAction2, new com.intellij.uiDesigner.core.GridConstraints(1, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
+        pnlActions.add(btnAction2, new GridConstraints(1, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
         lblAction3 = new JLabel();
         lblAction3.setText("lblAction3");
-        pnlActions.add(lblAction3, new com.intellij.uiDesigner.core.GridConstraints(2, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlActions.add(lblAction3, new GridConstraints(2, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         txtAction3 = new JTextField();
         txtAction3.setHorizontalAlignment(4);
-        pnlActions.add(txtAction3, new com.intellij.uiDesigner.core.GridConstraints(2, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlActions.add(txtAction3, new GridConstraints(2, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
         btnAction3 = new JButton();
         btnAction3.setText("");
-        pnlActions.add(btnAction3, new com.intellij.uiDesigner.core.GridConstraints(2, 2, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_CENTER, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
+        pnlActions.add(btnAction3, new GridConstraints(2, 2, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(100, -1), null, 0, false));
         cboxAction1 = new JCheckBox();
         cboxAction1.setText("cboxAction1");
-        pnlActions.add(cboxAction1, new com.intellij.uiDesigner.core.GridConstraints(4, 0, 1, 2, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_SHRINK | com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_CAN_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlActions.add(cboxAction1, new GridConstraints(5, 0, 1, 2, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         lblAction4 = new JLabel();
         lblAction4.setText("lblAction4");
-        pnlActions.add(lblAction4, new com.intellij.uiDesigner.core.GridConstraints(3, 0, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_NONE, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        pnlActions.add(lblAction4, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         txtAction4 = new JTextField();
         txtAction4.setHorizontalAlignment(4);
-        pnlActions.add(txtAction4, new com.intellij.uiDesigner.core.GridConstraints(3, 1, 1, 1, com.intellij.uiDesigner.core.GridConstraints.ANCHOR_WEST, com.intellij.uiDesigner.core.GridConstraints.FILL_HORIZONTAL, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_WANT_GROW, com.intellij.uiDesigner.core.GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        pnlActions.add(txtAction4, new GridConstraints(3, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, new Dimension(150, -1), null, 0, false));
+        cmbTransactions = new JComboBox();
+        cmbTransactions.setEnabled(true);
+        pnlActions.add(cmbTransactions, new GridConstraints(4, 1, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        lblAction5 = new JLabel();
+        lblAction5.setEnabled(true);
+        lblAction5.setText("lblAction5");
+        pnlActions.add(lblAction5, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
     }
 
     /**
@@ -396,4 +483,5 @@ public class FormAction implements WindowListener {
     public JComponent $$$getRootComponent$$$() {
         return pnlMain;
     }
+
 }
